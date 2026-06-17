@@ -132,8 +132,8 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       result = result.filter((a) => a.status === filterStatus);
     }
     result.sort((a, b) => {
-      const aVal = (a as Record<string, unknown>)[sortKey] as number;
-      const bVal = (b as Record<string, unknown>)[sortKey] as number;
+      const aVal = (a as any)[sortKey] as number;
+      const bVal = (b as any)[sortKey] as number;
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
     return result;
