@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAllAdInsights } from '@/lib/meta-api';
 
-const VALID_PRESETS = ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'last_90d'];
+const VALID_PRESETS = ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'last_90d', 'maximum'];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

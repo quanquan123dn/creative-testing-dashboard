@@ -4,9 +4,7 @@ import { EnrichedAd } from '@/app/page';
 import { DecisionConfig } from '@/lib/decision-engine';
 import KPICards from '@/components/KPICards';
 import CreativeTable from '@/components/CreativeTable';
-import IPMTrendChart from '@/components/charts/IPMTrendChart';
-import CPIBarChart from '@/components/charts/CPIBarChart';
-import SpendDonut from '@/components/charts/SpendDonut';
+import CreativeDistributionChart from '@/components/charts/CreativeDistributionChart';
 
 interface VideoTabProps {
   ads: EnrichedAd[];
@@ -40,31 +38,18 @@ export default function VideoTab({ ads, loading, config, datePreset }: VideoTabP
             {datePreset === 'last_7d' ? 'Last 7 days' :
              datePreset === 'last_14d' ? 'Last 14 days' :
              datePreset === 'last_30d' ? 'Last 30 days' :
-             datePreset === 'today' ? 'Today' : 'Yesterday'}
+             datePreset === 'today' ? 'Today' :
+             datePreset === 'yesterday' ? 'Yesterday' :
+             datePreset === 'maximum' ? 'Maximum timeframe' : datePreset}
           </div>
         </div>
         <CreativeTable ads={ads} loading={loading} config={config} />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* IPM Trend */}
-        <div className="lg:col-span-2 glass-card p-5">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">📈 IPM by Creative</h3>
-          <IPMTrendChart ads={ads} loading={loading} config={config} />
-        </div>
-
-        {/* Spend Donut */}
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">💸 Spend Distribution</h3>
-          <SpendDonut ads={ads} loading={loading} />
-        </div>
-      </div>
-
-      {/* CPI Bar Chart */}
+      {/* Creative Distribution Chart */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-slate-200 mb-4">📊 IPM vs Benchmark Comparison</h3>
-        <CPIBarChart ads={ads} loading={loading} config={config} />
+        <h3 className="text-sm font-semibold text-slate-200 mb-4">📊 Creative Type Distribution</h3>
+        <CreativeDistributionChart ads={ads} loading={loading} />
       </div>
     </div>
   );

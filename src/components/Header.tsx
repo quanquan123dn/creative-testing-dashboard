@@ -17,6 +17,7 @@ const DATE_PRESETS = [
   { value: 'last_7d', label: '7 Days' },
   { value: 'last_14d', label: '14 Days' },
   { value: 'last_30d', label: '30 Days' },
+  { value: 'maximum', label: 'Maximum' },
 ];
 
 function formatLastSync(iso: string | null): string {

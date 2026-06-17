@@ -139,6 +139,20 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
     return result;
   }, [ads, sortKey, sortDir, filterDecision, filterStatus]);
 
+  const filterCounts = useMemo(() => {
+    const counts = { all: 0, winner: 0, watching: 0, kill: 0, new: 0 };
+    ads.forEach((ad) => {
+      if (filterStatus === 'all' || ad.status === filterStatus) {
+        counts.all++;
+        const dec = ad.decision_result.decision as keyof typeof counts;
+        if (counts[dec] !== undefined) {
+          counts[dec]++;
+        }
+      }
+    });
+    return counts;
+  }, [ads, filterStatus]);
+
   const thStyle = (key: SortKey) => ({
     cursor: 'pointer',
     color: sortKey === key ? '#e2e8f0' : undefined,
@@ -152,7 +166,11 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         <div className="flex gap-1">
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
             const labels: Record<FilterDecision, string> = {
-              all: 'All', winner: '🏆 Winner', watching: '⏳ Watching', kill: '❌ Kill', new: '🔵 New'
+              all: `All (${filterCounts.all})`,
+              winner: `🏆 Winner (${filterCounts.winner})`,
+              watching: `⏳ Watching (${filterCounts.watching})`,
+              kill: `❌ Kill (${filterCounts.kill})`,
+              new: `🔵 New (${filterCounts.new})`
             };
             const active = filterDecision === d;
             return (
