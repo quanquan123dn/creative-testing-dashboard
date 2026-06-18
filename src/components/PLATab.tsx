@@ -8,7 +8,7 @@ interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
 }
 
-type SortKey = 'creative_pack_name' | 'views' | 'clicks' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'click_to_install' | 'cpi';
+type SortKey = 'creative_pack_name' | 'starts' | 'clicks' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'click_to_install' | 'cpi';
 
 function formatNumber(n: number, decimals = 2): string {
   if (n === 0) return '—';
@@ -46,7 +46,7 @@ export default function PLATab() {
           ipm: c.ipm,
           spend: c.spend,
           installs: c.installs,
-          views: c.views,
+          views: c.starts,
           clicks: c.clicks,
         }, config),
       }));
@@ -85,11 +85,11 @@ export default function PLATab() {
 
   // KPI aggregations
   const totalSpend = ads.reduce((s, a) => s + a.spend, 0);
-  const totalViews = ads.reduce((s, a) => s + a.views, 0);
+  const totalStarts = ads.reduce((s, a) => s + a.starts, 0);
   const totalInstalls = ads.reduce((s, a) => s + a.installs, 0);
   const totalClicks = ads.reduce((s, a) => s + a.clicks, 0);
-  const avgIPM = totalViews > 0 ? (totalInstalls / totalViews) * 1000 : 0;
-  const avgCTR = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+  const avgIPM = totalStarts > 0 ? (totalInstalls / totalStarts) * 1000 : 0;
+  const avgCTR = totalStarts > 0 ? (totalClicks / totalStarts) * 100 : 0;
   const avgCPI = totalInstalls > 0 ? totalSpend / totalInstalls : 0;
   const avgC2I = totalClicks > 0 ? (totalInstalls / totalClicks) * 100 : 0;
 
@@ -107,7 +107,7 @@ export default function PLATab() {
     { id: 'pla-ipm', label: 'Avg IPM', value: formatNumber(avgIPM), sub: `Benchmark: ${config.ipm_winner}`, icon: '📲', color: ipmColor, highlight: true },
     { id: 'pla-ctr', label: 'Avg CTR', value: `${avgCTR.toFixed(2)}%`, sub: `${formatNumber(totalClicks, 0)} clicks`, icon: '👆', color: '#8b5cf6' },
     { id: 'pla-c2i', label: 'Click-to-Install', value: `${avgC2I.toFixed(1)}%`, sub: `${formatNumber(totalInstalls, 0)} installs`, icon: '📦', color: '#06b6d4' },
-    { id: 'pla-cpi', label: 'Avg CPI', value: formatCurrency(avgCPI), sub: `${formatNumber(totalViews, 0)} views`, icon: '🎯', color: '#f59e0b' },
+    { id: 'pla-cpi', label: 'Avg CPI', value: formatCurrency(avgCPI), sub: `${formatNumber(totalStarts, 0)} impressions`, icon: '🎯', color: '#f59e0b' },
     { id: 'pla-decisions', label: 'Decisions', value: '', sub: `${newAds} chưa đủ data`, icon: '🏆', color: '#10b981', isDecision: true },
   ];
 
@@ -124,7 +124,7 @@ export default function PLATab() {
 
   const columns: { key: SortKey; label: string; align?: 'right' | 'left' }[] = [
     { key: 'creative_pack_name', label: 'Creative Pack', align: 'left' },
-    { key: 'views', label: 'Views', align: 'right' },
+    { key: 'starts', label: 'Impressions', align: 'right' },
     { key: 'clicks', label: 'Clicks', align: 'right' },
     { key: 'installs', label: 'Installs', align: 'right' },
     { key: 'spend', label: 'Spend', align: 'right' },
@@ -310,7 +310,7 @@ export default function PLATab() {
                         <div className="text-[10px] mt-0.5" style={{ color: '#475569' }}>{ad.creative_pack_id.slice(0, 12)}...</div>
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {ad.views.toLocaleString()}
+                        {ad.starts.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
                         {ad.clicks.toLocaleString()}

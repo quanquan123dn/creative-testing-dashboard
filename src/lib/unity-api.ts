@@ -6,7 +6,8 @@
 export interface UnityCreativeStat {
   creative_pack_id: string;
   creative_pack_name: string;
-  views: number;
+  starts: number;  // impressions (ad started)
+  views: number;   // completed views
   clicks: number;
   installs: number;
   spend: number;
@@ -125,7 +126,7 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
   const authHeader = getBasicAuthHeader();
   const { start, end } = getDateRange(datePreset);
 
-  const url = `https://services.api.unity.com/advertise/stats/v2/organizations/${orgId}/reports/acquisitions?start=${start}&end=${end}&metrics=views,clicks,installs,spend&scale=summary&campaignIds=${campaignId}&breakdowns=creativePack`;
+  const url = `https://services.api.unity.com/advertise/stats/v2/organizations/${orgId}/reports/acquisitions?start=${start}&end=${end}&metrics=starts,views,clicks,installs,spend&scale=summary&campaignIds=${campaignId}&breakdowns=creativePack`;
 
   const response = await fetch(url, {
     headers: {
@@ -143,7 +144,8 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
   const rows = parseCSV(csvText);
 
   const creatives: UnityCreativeStat[] = rows.map((row) => {
-    const views = parseFloat(row['views'] || '0');
+    const starts = parseFloat(row['starts'] || '0');  // impressions
+    const views = parseFloat(row['views'] || '0');     // completed views
     const clicks = parseFloat(row['clicks'] || '0');
     const installs = parseFloat(row['installs'] || '0');
     const spend = parseFloat(row['spend'] || '0');
@@ -151,12 +153,13 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
     return {
       creative_pack_id: row['creative pack id'] || '',
       creative_pack_name: row['creative pack name'] || '',
+      starts,
       views,
       clicks,
       installs,
       spend,
-      ipm: views > 0 ? (installs / views) * 1000 : 0,
-      ctr: views > 0 ? (clicks / views) * 100 : 0,
+      ipm: starts > 0 ? (installs / starts) * 1000 : 0,
+      ctr: starts > 0 ? (clicks / starts) * 100 : 0,
       click_to_install: clicks > 0 ? (installs / clicks) * 100 : 0,
       cpi: installs > 0 ? spend / installs : 0,
     };
