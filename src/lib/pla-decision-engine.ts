@@ -4,7 +4,7 @@
  * Uses views (not impressions) since Unity reports views
  */
 
-export type PLADecision = 'winner' | 'watching' | 'kill' | 'new';
+export type PLADecision = 'winner' | 'watching' | 'fail' | 'new';
 
 export interface PLADecisionResult {
   decision: PLADecision;
@@ -52,7 +52,7 @@ export function scorePLACreative(
     warnings.push(`Low CTR (${ctr.toFixed(1)}%) — creative not attracting clicks`);
   }
   if (c2i > 0 && c2i < 2) {
-    warnings.push(`Low C2I (${c2i.toFixed(1)}%) — store page mismatch?`);
+    warnings.push(`Low CVR (${c2i.toFixed(1)}%) — store page mismatch?`);
   }
 
   const notEnoughData =
@@ -106,8 +106,8 @@ export function scorePLACreative(
     };
   } else {
     return {
-      decision: 'kill',
-      label: 'Kill',
+      decision: 'fail',
+      label: 'Fail',
       emoji: '❌',
       hexColor: '#f87171',
       hexBg: 'rgba(239,68,68,0.12)',

@@ -8,7 +8,7 @@ interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
 }
 
-type SortKey = 'creative_pack_name' | 'starts' | 'clicks' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'click_to_install' | 'cpi';
+type SortKey = 'creative_pack_name' | 'starts' | 'clicks' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'cvr' | 'cpi' | 'cpm';
 
 function formatNumber(n: number, decimals = 2): string {
   if (n === 0) return '—';
@@ -91,11 +91,12 @@ export default function PLATab() {
   const avgIPM = totalStarts > 0 ? (totalInstalls / totalStarts) * 1000 : 0;
   const avgCTR = totalStarts > 0 ? (totalClicks / totalStarts) * 100 : 0;
   const avgCPI = totalInstalls > 0 ? totalSpend / totalInstalls : 0;
-  const avgC2I = totalClicks > 0 ? (totalInstalls / totalClicks) * 100 : 0;
+  const avgCVR = totalClicks > 0 ? (totalInstalls / totalClicks) * 100 : 0;
+  const avgCPM = totalStarts > 0 ? (totalSpend / totalStarts) * 1000 : 0;
 
   const winners = ads.filter(a => a.decision_result.decision === 'winner').length;
   const watching = ads.filter(a => a.decision_result.decision === 'watching').length;
-  const kills = ads.filter(a => a.decision_result.decision === 'kill').length;
+  const fails = ads.filter(a => a.decision_result.decision === 'fail').length;
   const newAds = ads.filter(a => a.decision_result.decision === 'new').length;
 
   const ipmColor = avgIPM >= config.ipm_winner ? '#10b981' : avgIPM >= config.ipm_watching ? '#f59e0b' : '#ef4444';
@@ -106,16 +107,16 @@ export default function PLATab() {
     { id: 'pla-spend', label: 'Total Spend', value: formatCurrency(totalSpend), sub: `${ads.length} creatives`, icon: '💸', color: '#3b82f6' },
     { id: 'pla-ipm', label: 'Avg IPM', value: formatNumber(avgIPM), sub: `Benchmark: ${config.ipm_winner}`, icon: '📲', color: ipmColor, highlight: true },
     { id: 'pla-ctr', label: 'Avg CTR', value: `${avgCTR.toFixed(2)}%`, sub: `${formatNumber(totalClicks, 0)} clicks`, icon: '👆', color: '#8b5cf6' },
-    { id: 'pla-c2i', label: 'Click-to-Install', value: `${avgC2I.toFixed(1)}%`, sub: `${formatNumber(totalInstalls, 0)} installs`, icon: '📦', color: '#06b6d4' },
+    { id: 'pla-cvr', label: 'Avg CVR', value: `${avgCVR.toFixed(1)}%`, sub: `${formatNumber(totalInstalls, 0)} installs`, icon: '📦', color: '#06b6d4' },
     { id: 'pla-cpi', label: 'Avg CPI', value: formatCurrency(avgCPI), sub: `${formatNumber(totalStarts, 0)} impressions`, icon: '🎯', color: '#f59e0b' },
     { id: 'pla-decisions', label: 'Decisions', value: '', sub: `${newAds} chưa đủ data`, icon: '🏆', color: '#10b981', isDecision: true },
   ];
 
   // Distribution chart data
-  const total = winners + watching + kills;
+  const total = winners + watching + fails;
   const winnerPct = total > 0 ? (winners / total) * 100 : 0;
   const watchingPct = total > 0 ? (watching / total) * 100 : 0;
-  const killPct = total > 0 ? (kills / total) * 100 : 0;
+  const failPct = total > 0 ? (fails / total) * 100 : 0;
 
   const sortArrow = (key: SortKey) => {
     if (sortKey !== key) return <span style={{ color: '#475569', fontSize: '10px' }}> ↕</span>;
@@ -130,8 +131,9 @@ export default function PLATab() {
     { key: 'spend', label: 'Spend', align: 'right' },
     { key: 'ipm', label: 'IPM', align: 'right' },
     { key: 'ctr', label: 'CTR', align: 'right' },
-    { key: 'click_to_install', label: 'C2I', align: 'right' },
+    { key: 'cvr', label: 'CVR', align: 'right' },
     { key: 'cpi', label: 'CPI', align: 'right' },
+    { key: 'cpm', label: 'CPM', align: 'right' },
   ];
 
   return (
@@ -201,7 +203,7 @@ export default function PLATab() {
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-sm font-bold" style={{ color: '#10b981' }}>{winners}🏆</span>
                 <span className="text-sm font-bold" style={{ color: '#f59e0b' }}>{watching}⏳</span>
-                <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{kills}❌</span>
+                <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fails}❌</span>
               </div>
             ) : (
               <div className="text-lg font-bold" style={{ color: card.highlight ? ipmColor : card.color }}>
@@ -341,10 +343,13 @@ export default function PLATab() {
                         {ad.ctr.toFixed(2)}%
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {ad.click_to_install.toFixed(1)}%
+                        {ad.cvr.toFixed(1)}%
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
                         {formatCurrency(ad.cpi)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
+                        {formatCurrency(ad.cpm)}
                       </td>
                     </tr>
                   );
@@ -379,12 +384,12 @@ export default function PLATab() {
                     {watchingPct.toFixed(0)}%
                   </div>
                 )}
-                {killPct > 0 && (
+                {failPct > 0 && (
                   <div
                     className="flex items-center justify-center text-xs font-bold transition-all"
-                    style={{ width: `${killPct}%`, background: 'rgba(239,68,68,0.5)', color: '#fee2e2' }}
+                    style={{ width: `${failPct}%`, background: 'rgba(239,68,68,0.5)', color: '#fee2e2' }}
                   >
-                    {killPct.toFixed(0)}%
+                    {failPct.toFixed(0)}%
                   </div>
                 )}
               </div>
@@ -401,7 +406,7 @@ export default function PLATab() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#ef4444' }} />
-                <span style={{ color: '#94a3b8' }}>Kill ({kills})</span>
+                <span style={{ color: '#94a3b8' }}>Fail ({fails})</span>
               </div>
             </div>
           </div>

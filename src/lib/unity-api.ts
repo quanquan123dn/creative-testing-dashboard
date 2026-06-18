@@ -13,8 +13,9 @@ export interface UnityCreativeStat {
   spend: number;
   ipm: number;
   ctr: number;
-  click_to_install: number;
+  cvr: number;     // conversion rate (installs/clicks)
   cpi: number;
+  cpm: number;     // cost per mille impressions
 }
 
 export interface UnityInsightsResult {
@@ -160,8 +161,9 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
       spend,
       ipm: starts > 0 ? (installs / starts) * 1000 : 0,
       ctr: starts > 0 ? (clicks / starts) * 100 : 0,
-      click_to_install: clicks > 0 ? (installs / clicks) * 100 : 0,
+      cvr: clicks > 0 ? (installs / clicks) * 100 : 0,
       cpi: installs > 0 ? spend / installs : 0,
+      cpm: starts > 0 ? (spend / starts) * 1000 : 0,
     };
   });
 
