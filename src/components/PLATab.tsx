@@ -36,7 +36,7 @@ export default function PLATab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/unity-insights?date_preset=last_30d');
+      const res = await fetch('/api/unity-insights?date_preset=maximum');
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
@@ -230,7 +230,7 @@ export default function PLATab() {
               </span>
             )}
           </div>
-          <div className="text-xs" style={{ color: '#64748b' }}>Last 30 days</div>
+          <div className="text-xs" style={{ color: '#64748b' }}>All time (since campaign start)</div>
         </div>
 
         {/* Table */}
