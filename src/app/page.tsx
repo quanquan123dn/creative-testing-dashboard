@@ -91,9 +91,6 @@ export default function DashboardPage() {
               id="tab-pla"
             >
               🖼️ Test PLA
-              <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#1e2d4a', color: '#64748b' }}>
-                Soon
-              </span>
             </button>
           </div>
         </div>
