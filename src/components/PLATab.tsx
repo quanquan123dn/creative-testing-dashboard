@@ -32,11 +32,12 @@ export default function PLATab() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const config = PLA_DEFAULT_CONFIG;
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/unity-insights?date_preset=maximum');
+      const forceParam = force ? '&force=true' : '';
+      const res = await fetch(`/api/unity-insights?date_preset=maximum${forceParam}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
@@ -53,7 +54,7 @@ export default function PLATab() {
 
       setAds(enriched);
       setCampaignName(json.data.campaign?.name || null);
-      setLastSync(json.data.lastSync || null);
+      setLastSync(json.data.cachedAt || json.data.lastSync || null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch Unity data');
     } finally {
@@ -157,7 +158,7 @@ export default function PLATab() {
               </span>
             )}
             <button
-              onClick={fetchData}
+              onClick={() => fetchData(true)}
               disabled={loading}
               className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
               style={{

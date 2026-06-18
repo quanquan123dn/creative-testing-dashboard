@@ -21,11 +21,12 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [config] = useState<DecisionConfig>(DEFAULT_CONFIG);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/insights?date_preset=${datePreset}`);
+      const forceParam = force ? '&force=true' : '';
+      const res = await fetch(`/api/insights?date_preset=${datePreset}${forceParam}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
@@ -47,7 +48,7 @@ export default function DashboardPage() {
 
       setAds(enriched);
       setCampaignName(json.data.campaign?.name || null);
-      setLastSync(json.data.lastSync || null);
+      setLastSync(json.data.cachedAt || json.data.lastSync || null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {

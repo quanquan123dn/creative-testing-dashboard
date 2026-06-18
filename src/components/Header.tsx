@@ -8,7 +8,7 @@ interface HeaderProps {
   loading: boolean;
   datePreset: string;
   onDatePresetChange: (preset: string) => void;
-  onSync: () => void;
+  onSync: (force?: boolean) => void;
 }
 
 const DATE_PRESETS = [
@@ -105,7 +105,7 @@ export default function Header({
 
             {/* Sync button */}
             <button
-              onClick={onSync}
+              onClick={() => onSync(true)}
               disabled={loading}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
               style={{
