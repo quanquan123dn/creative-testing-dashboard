@@ -26,8 +26,8 @@ export interface UnityInsightsResult {
 }
 
 function getBasicAuthHeader(): string {
-  const keyId = process.env.UNITY_KEY_ID;
-  const secretKey = process.env.UNITY_SECRET_KEY;
+  const keyId = (process.env.UNITY_KEY_ID || '').trim();
+  const secretKey = (process.env.UNITY_SECRET_KEY || '').trim();
   if (!keyId || !secretKey) {
     throw new Error('Missing UNITY_KEY_ID or UNITY_SECRET_KEY environment variables');
   }
@@ -114,9 +114,9 @@ function parseCSVLine(line: string): string[] {
 }
 
 export async function getUnityCreativeStats(datePreset: string): Promise<UnityInsightsResult> {
-  const orgId = process.env.UNITY_ORG_ID;
-  const campaignId = process.env.UNITY_CAMPAIGN_ID;
-  const campaignName = process.env.UNITY_CAMPAIGN_NAME || 'Unity PLA Campaign';
+  const orgId = (process.env.UNITY_ORG_ID || '').trim();
+  const campaignId = (process.env.UNITY_CAMPAIGN_ID || '').trim();
+  const campaignName = (process.env.UNITY_CAMPAIGN_NAME || 'Unity PLA Campaign').trim();
 
   if (!orgId || !campaignId) {
     throw new Error('Missing UNITY_ORG_ID or UNITY_CAMPAIGN_ID environment variables');
