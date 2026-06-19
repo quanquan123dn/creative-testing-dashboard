@@ -29,7 +29,9 @@ export default function AppLovinTab() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
-      const enriched: EnrichedAppLovinAd[] = (json.data.ads || []).map((ad: AppLovinCreativeSet) => ({
+      const enriched: EnrichedAppLovinAd[] = (json.data.ads || [])
+        .filter((ad: AppLovinCreativeSet) => ad.cost > 0)
+        .map((ad: AppLovinCreativeSet) => ({
         ...ad,
         decision_result: scoreAppLovinCreative({
           roas_3d: ad.roas_3d,

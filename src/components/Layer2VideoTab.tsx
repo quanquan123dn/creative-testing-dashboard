@@ -43,7 +43,7 @@ export default function Layer2VideoTab() {
       }
 
       const afAds: AppsFlyerAd[] = afJson.success ? (afJson.data?.ads || []) : [];
-      const metaAds = metaJson.data?.ads || [];
+      const metaAds = (metaJson.data?.ads || []).filter((metaAd: any) => metaAd.spend > 0);
 
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
         const afAd = afAds.find(a => a.ad_name === metaAd.ad_name);

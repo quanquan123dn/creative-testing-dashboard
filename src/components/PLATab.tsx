@@ -44,7 +44,9 @@ export default function PLATab() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
-      const enriched: EnrichedPLA[] = (json.data.creatives || []).map((c: UnityCreativeStat) => ({
+      const enriched: EnrichedPLA[] = (json.data.creatives || [])
+        .filter((c: UnityCreativeStat) => c.spend > 0)
+        .map((c: UnityCreativeStat) => ({
         ...c,
         decision_result: scorePLACreative({
           ipm: c.ipm,
