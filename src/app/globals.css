@@ -255,8 +255,24 @@ body {
 
 /* Responsive table wrapper */
 .table-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table thead tr {
+  background: #0f1629 !important;
+}
+
+.data-table thead th {
+  background: #0f1629;
 }
 
 /* Fade in animation */

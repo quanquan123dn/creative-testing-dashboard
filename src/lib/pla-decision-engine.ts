@@ -85,7 +85,7 @@ export function scorePLACreative(
   if (ipm >= config.ipm_winner) {
     return {
       decision: 'winner',
-      label: 'Winner',
+      label: 'Đạt',
       emoji: '🏆',
       hexColor: '#34d399',
       hexBg: 'rgba(16,185,129,0.12)',
@@ -96,7 +96,7 @@ export function scorePLACreative(
   } else if (ipm >= config.ipm_watching) {
     return {
       decision: 'watching',
-      label: 'Watching',
+      label: 'Iterate',
       emoji: '⏳',
       hexColor: '#fbbf24',
       hexBg: 'rgba(245,158,11,0.12)',

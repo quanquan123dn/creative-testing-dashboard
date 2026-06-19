@@ -9,9 +9,9 @@ interface CreativeDistributionChartProps {
 }
 
 const CATEGORY_META = {
-  winner: { label: 'Winner 🏆', color: '#10b981', hoverColor: '#34d399' },
-  watching: { label: 'Watching ⏳', color: '#f59e0b', hoverColor: '#fbbf24' },
-  kill: { label: 'Kill ❌', color: '#ef4444', hoverColor: '#f87171' },
+  winner: { label: 'Đạt 🏆', color: '#10b981', hoverColor: '#34d399' },
+  watching: { label: 'Iterate ⏳', color: '#f59e0b', hoverColor: '#fbbf24' },
+  kill: { label: 'Fail ❌', color: '#ef4444', hoverColor: '#f87171' },
   new: { label: 'New / Collecting Data 🔵', color: '#3b82f6', hoverColor: '#60a5fa' },
 };
 

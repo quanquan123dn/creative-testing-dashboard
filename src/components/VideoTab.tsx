@@ -5,6 +5,7 @@ import { DecisionConfig } from '@/lib/decision-engine';
 import KPICards from '@/components/KPICards';
 import CreativeTable from '@/components/CreativeTable';
 import CreativeDistributionChart from '@/components/charts/CreativeDistributionChart';
+import LeaderboardSection, { LeaderboardData } from '@/components/LeaderboardSection';
 
 interface VideoTabProps {
   ads: EnrichedAd[];
@@ -14,10 +15,21 @@ interface VideoTabProps {
 }
 
 export default function VideoTab({ ads, loading, config, datePreset }: VideoTabProps) {
+  const leaderboardData: LeaderboardData[] = ads.map(ad => ({
+    name: ad.ad_name.replace(/^TSH\d+_/, ''),
+    id: ad.ad_id,
+    ipm: ad.ipm,
+    ctr: ad.ctr,
+    cvr: ad.click_to_install,
+  }));
+
   return (
     <div className="space-y-5 fade-in-up">
       {/* KPI Cards */}
       <KPICards ads={ads} loading={loading} config={config} />
+
+      {/* Leaderboard */}
+      <LeaderboardSection data={leaderboardData} loading={loading} ipmBenchmark={config.ipm_winner} />
 
       {/* Main Table */}
       <div className="glass-card">

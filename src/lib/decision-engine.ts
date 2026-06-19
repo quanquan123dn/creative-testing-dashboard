@@ -91,7 +91,7 @@ export function scoreCreative(
   if (ipm >= config.ipm_winner) {
     return {
       decision: 'winner',
-      label: 'Winner',
+      label: 'Đạt',
       emoji: '🏆',
       colorClass: 'text-emerald-400',
       bgClass: 'bg-emerald-500/10',
@@ -105,7 +105,7 @@ export function scoreCreative(
   } else if (ipm >= config.ipm_watching) {
     return {
       decision: 'watching',
-      label: 'Watching',
+      label: 'Iterate',
       emoji: '⏳',
       colorClass: 'text-amber-400',
       bgClass: 'bg-amber-500/10',
@@ -119,7 +119,7 @@ export function scoreCreative(
   } else {
     return {
       decision: 'kill',
-      label: 'Kill',
+      label: 'Fail',
       emoji: '❌',
       colorClass: 'text-red-400',
       bgClass: 'bg-red-500/10',

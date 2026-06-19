@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UnityCreativeStat } from '@/lib/unity-api';
 import { scorePLACreative, PLA_DEFAULT_CONFIG, PLADecisionConfig, PLADecisionResult, getPLAIPMBarColor } from '@/lib/pla-decision-engine';
+import LeaderboardSection from '@/components/LeaderboardSection';
 
 interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
 }
 
-type SortKey = 'creative_pack_name' | 'starts' | 'clicks' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'cvr' | 'cpi' | 'cpm';
+type SortKey = 'creative_pack_name' | 'starts' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'cvr' | 'cpi' | 'cpm';
 
 function formatNumber(n: number, decimals = 2): string {
   if (n === 0) return '—';
@@ -126,15 +127,14 @@ export default function PLATab() {
 
   const columns: { key: SortKey; label: string; align?: 'right' | 'left' }[] = [
     { key: 'creative_pack_name', label: 'Creative Pack', align: 'left' },
-    { key: 'starts', label: 'Impressions', align: 'right' },
-    { key: 'clicks', label: 'Clicks', align: 'right' },
-    { key: 'installs', label: 'Installs', align: 'right' },
     { key: 'spend', label: 'Spend', align: 'right' },
+    { key: 'starts', label: 'Impressions', align: 'right' },
+    { key: 'installs', label: 'Installs', align: 'right' },
     { key: 'ipm', label: 'IPM', align: 'right' },
     { key: 'ctr', label: 'CTR', align: 'right' },
     { key: 'cvr', label: 'CVR', align: 'right' },
-    { key: 'cpi', label: 'CPI', align: 'right' },
     { key: 'cpm', label: 'CPM', align: 'right' },
+    { key: 'cpi', label: 'CPI', align: 'right' },
   ];
 
   return (
@@ -218,6 +218,19 @@ export default function PLATab() {
         ))}
       </div>
 
+      {/* Leaderboard */}
+      <LeaderboardSection
+        data={ads.map(a => ({
+          name: a.creative_pack_name,
+          id: a.creative_pack_id,
+          ipm: a.ipm,
+          ctr: a.ctr,
+          cvr: a.cvr,
+        }))}
+        loading={loading}
+        ipmBenchmark={config.ipm_winner}
+      />
+
       {/* Creative Table */}
       <div className="glass-card">
         <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: '#1e2d4a' }}>
@@ -237,10 +250,10 @@ export default function PLATab() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: 'rgba(15,22,41,0.8)' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+              <tr style={{ background: '#0f1629' }}>
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#64748b', width: '40px' }}>
                   #
                 </th>
@@ -313,16 +326,13 @@ export default function PLATab() {
                         <div className="text-[10px] mt-0.5" style={{ color: '#475569' }}>{ad.creative_pack_id.slice(0, 12)}...</div>
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {ad.starts.toLocaleString()}
+                        {formatCurrency(ad.spend)}
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {ad.clicks.toLocaleString()}
+                        {ad.starts.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-medium" style={{ color: '#e2e8f0' }}>
                         {ad.installs.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {formatCurrency(ad.spend)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -347,10 +357,10 @@ export default function PLATab() {
                         {ad.cvr.toFixed(1)}%
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {formatCurrency(ad.cpi)}
+                        {formatCurrency(ad.cpm)}
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
-                        {formatCurrency(ad.cpm)}
+                        {formatCurrency(ad.cpi)}
                       </td>
                     </tr>
                   );
@@ -399,11 +409,11 @@ export default function PLATab() {
             <div className="flex gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#10b981' }} />
-                <span style={{ color: '#94a3b8' }}>Winner ({winners})</span>
+                <span style={{ color: '#94a3b8' }}>Đạt ({winners})</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#f59e0b' }} />
-                <span style={{ color: '#94a3b8' }}>Watching ({watching})</span>
+                <span style={{ color: '#94a3b8' }}>Iterate ({watching})</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#ef4444' }} />
