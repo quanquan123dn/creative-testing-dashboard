@@ -214,8 +214,8 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={thStyle('hook_rate')} onClick={() => handleSort('hook_rate')}>
                 Hook% <SortIcon column="hook_rate" sortKey={sortKey} sortDir={sortDir} />
               </th>
-              <th style={{ minWidth: 100 }}>L2 Status</th>
               <th style={{ minWidth: 120 }}>L1 Decision</th>
+              <th style={{ minWidth: 100 }}>L2 Status</th>
             </tr>
           </thead>
           <tbody>
@@ -310,6 +310,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   <td style={{ color: ad.hook_rate > 0 && ad.hook_rate < config.hook_rate_warning ? '#f59e0b' : '#94a3b8' }}>
                     {fmt(ad.hook_rate, 1)}{ad.hook_rate > 0 ? '%' : ''}
                   </td>
+                  <td><DecisionBadge result={ad.decision_result} /></td>
                   <td>
                     <span className="px-2 py-1 rounded text-[11px] font-medium" style={{ 
                       background: ad.layer2_status === 'Đang test' ? 'rgba(59,130,246,0.15)' : 
@@ -325,7 +326,6 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       {ad.layer2_status || 'Chưa đưa lên'}
                     </span>
                   </td>
-                  <td><DecisionBadge result={ad.decision_result} /></td>
                 </tr>
               ))
             )}
