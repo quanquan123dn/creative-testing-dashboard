@@ -30,26 +30,16 @@ function Leaderboard({ title, icon, items, formatValue, accentColor, benchmarkVa
 
   return (
     <div className="glass-card p-4" style={{ minWidth: 0 }}>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-6">
         <span className="text-base" style={{ color: accentColor }}>{icon}</span>
         <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{title}</h4>
       </div>
-      {benchmarkValue !== undefined && benchmarkLabel && (
-        <div className="text-[10px] mb-3 px-2 py-1 rounded inline-block" style={{
-          background: 'rgba(100,116,139,0.1)',
-          color: '#64748b',
-          border: '1px solid rgba(100,116,139,0.2)',
-        }}>
-          Benchmark: {benchmarkLabel}
-        </div>
-      )}
       <div className="space-y-2">
         {top5.map((item, idx) => {
           const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
-          const isAboveBenchmark = benchmarkValue !== undefined ? item.value >= benchmarkValue : true;
           return (
             <div key={item.id} className="group">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="flex justify-center w-6 flex-shrink-0">
                     {getMedalIcon(idx)}
@@ -59,7 +49,7 @@ function Leaderboard({ title, icon, items, formatValue, accentColor, benchmarkVa
                   </span>
                 </div>
                 <span className="text-xs font-bold flex-shrink-0 ml-2" style={{
-                  color: isAboveBenchmark ? accentColor : '#f87171',
+                  color: accentColor,
                 }}>
                   {formatValue(item.value)}
                 </span>
