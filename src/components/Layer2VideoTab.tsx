@@ -178,7 +178,7 @@ export default function Layer2VideoTab() {
   return (
     <div className="space-y-5 fade-in-up">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpiCards.map((card: any) => (
           <div key={card.id} id={card.id} className="glass-card p-4 fade-in-up" style={{ borderLeft: `2px solid ${card.color}30` }}>
             <div className="flex items-center justify-between mb-2">
