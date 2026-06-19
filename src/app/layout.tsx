@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Creative Testing",
   description: "Meta Ads Creative Testing Performance Dashboard — Layer 1 CPI Campaign Monitor",
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({
