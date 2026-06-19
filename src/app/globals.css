@@ -110,6 +110,13 @@ body {
   user-select: none;
 }
 
+.data-table th:nth-child(n+2):nth-child(-n+10), 
+.data-table td:nth-child(n+2):nth-child(-n+10) {
+  text-align: right;
+  font-family: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
 .data-table th:hover {
   color: var(--text-primary);
 }
@@ -131,7 +138,11 @@ body {
 }
 
 .data-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
 }
 
 /* Row decision backgrounds */

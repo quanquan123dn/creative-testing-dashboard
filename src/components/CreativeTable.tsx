@@ -63,13 +63,13 @@ function IPMCell({ ipm, config, maxIPM }: { ipm: number; config: DecisionConfig;
   const pct = Math.min((ipm / Math.max(maxIPM, config.ipm_winner * 1.5)) * 100, 100);
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-end gap-1">
       <span className="text-sm font-bold" style={{ color }}>
         {ipm > 0 ? ipm.toFixed(2) : '—'}
       </span>
       {ipm > 0 && (
         <div className="ipm-bar-track">
-          <div className="ipm-bar-fill" style={{ width: `${pct}%`, background: color }} />
+          <div className="ipm-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, transparent, ${color})` }} />
         </div>
       )}
     </div>
@@ -287,7 +287,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                     {ad.impressions >= 10000
                       ? fmtK(ad.impressions)
                       : (
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col items-end gap-0.5">
                           <span style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 500 }}>{fmtK(ad.impressions)}</span>
                           <div style={{ background: '#1e2d4a', borderRadius: 2, height: 3, width: 48 }}>
                             <div style={{
@@ -312,7 +312,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   </td>
                   <td><DecisionBadge result={ad.decision_result} /></td>
                   <td>
-                    <span className="px-2 py-1 rounded text-[11px] font-medium" style={{ 
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 w-max" style={{ 
                       background: ad.layer2_status === 'Đang test' ? 'rgba(59,130,246,0.15)' : 
                                  ad.layer2_status === 'Đã test' ? 'rgba(16,185,129,0.15)' : 
                                  ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)',
@@ -321,8 +321,14 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                              ad.layer2_status === 'Không test' ? '#f87171' : '#94a3b8',
                       border: `1px solid ${ad.layer2_status === 'Đang test' ? 'rgba(59,130,246,0.3)' : 
                                            ad.layer2_status === 'Đã test' ? 'rgba(16,185,129,0.3)' : 
-                                           ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.3)' : 'rgba(100,116,139,0.3)'}`
+                                           ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.3)' : 'rgba(100,116,139,0.3)'}`,
+                      boxShadow: ad.layer2_status === 'Đang test' ? '0 0 10px rgba(59,130,246,0.1)' : 
+                                 ad.layer2_status === 'Đã test' ? '0 0 10px rgba(16,185,129,0.1)' : 'none'
                     }}>
+                      {ad.layer2_status === 'Đang test' && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+                      {ad.layer2_status === 'Đã test' && '✅'}
+                      {ad.layer2_status === 'Không test' && '⛔'}
+                      {(!ad.layer2_status || ad.layer2_status === 'Chưa test') && '⏳'}
                       {ad.layer2_status || 'Chưa test'}
                     </span>
                   </td>
