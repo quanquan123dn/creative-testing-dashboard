@@ -33,28 +33,7 @@ function fmtK(n: number) {
   return n.toString();
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; text: string; dot: string }> = {
-    ACTIVE: { bg: 'rgba(16,185,129,0.1)', text: '#10b981', dot: '#10b981' },
-    PAUSED: { bg: 'rgba(100,116,139,0.1)', text: '#64748b', dot: '#64748b' },
-    ADSET_PAUSED: { bg: 'rgba(100,116,139,0.1)', text: '#64748b', dot: '#64748b' },
-    PENDING_REVIEW: { bg: 'rgba(245,158,11,0.1)', text: '#f59e0b', dot: '#f59e0b' },
-    DISAPPROVED: { bg: 'rgba(239,68,68,0.1)', text: '#ef4444', dot: '#ef4444' },
-    CAMPAIGN_PAUSED: { bg: 'rgba(100,116,139,0.1)', text: '#64748b', dot: '#64748b' },
-  };
-  const c = colors[status] || colors.PAUSED;
-  const label = status === 'ADSET_PAUSED' ? 'Paused' :
-                status === 'CAMPAIGN_PAUSED' ? 'Paused' :
-                status === 'PENDING_REVIEW' ? 'Review' :
-                status.charAt(0) + status.slice(1).toLowerCase();
 
-  return (
-    <span className="badge" style={{ background: c.bg, color: c.text, borderColor: `${c.dot}40` }}>
-      <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: c.dot }} />
-      {label}
-    </span>
-  );
-}
 
 function DecisionBadge({ result }: { result: EnrichedAd['decision_result'] }) {
   return (
@@ -110,7 +89,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [sortKey, setSortKey] = useState<SortKey>('ipm');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus] = useState<string>('all');
 
   const maxIPM = useMemo(() => Math.max(...ads.map(a => a.ipm), config.ipm_winner * 1.5), [ads, config.ipm_winner]);
 
@@ -196,25 +175,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           })}
         </div>
 
-        <div className="flex gap-1 ml-auto">
-          {['all', 'ACTIVE', 'PAUSED'].map((s) => {
-            const active = filterStatus === s;
-            return (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                className="px-2.5 py-1 rounded text-xs font-medium transition-all"
-                style={{
-                  background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
-                  border: `1px solid ${active ? 'rgba(139,92,246,0.4)' : '#1e2d4a'}`,
-                  color: active ? '#a78bfa' : '#64748b',
-                }}
-              >
-                {s === 'all' ? 'All Status' : s.charAt(0) + s.slice(1).toLowerCase()}
-              </button>
-            );
-          })}
-        </div>
+
       </div>
 
       {/* Table */}
@@ -225,7 +186,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={{ minWidth: 220, ...thStyle('ad_name'), cursor: 'pointer' }} onClick={() => handleSort('ad_name')}>
                 Creative <SortIcon column="ad_name" sortKey={sortKey} sortDir={sortDir} />
               </th>
-              <th>Status</th>
+
               <th style={thStyle('spend')} onClick={() => handleSort('spend')}>
                 Spend <SortIcon column="spend" sortKey={sortKey} sortDir={sortDir} />
               </th>
@@ -325,7 +286,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       </div>
                     </div>
                   </td>
-                  <td><StatusBadge status={ad.status} /></td>
+
                   <td className="font-medium text-slate-200">{fmtCurr(ad.spend)}</td>
                   <td style={{ color: '#94a3b8' }}>
                     {ad.impressions >= 10000
