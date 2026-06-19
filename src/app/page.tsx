@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AdInsight } from '@/lib/meta-api';
+import { extractCreativeCode } from '@/lib/utils';
 import { scoreCreative, DEFAULT_CONFIG, DecisionConfig } from '@/lib/decision-engine';
 import VideoTab from '@/components/VideoTab';
 import PLATab from '@/components/PLATab';
@@ -54,7 +55,12 @@ export default function DashboardPage() {
         );
 
         let layer2_status = 'Chưa test';
-        if (decision_result.decision === 'kill') {
+        const creativeCode = extractCreativeCode(ad.ad_name);
+        const benchmarkCodes = ['VE0001', 'VE0193', 'VE0217', 'VE0163'];
+        
+        if (benchmarkCodes.includes(creativeCode)) {
+          layer2_status = 'Không test';
+        } else if (decision_result.decision === 'kill') {
           layer2_status = 'Không test';
         } else {
           const l2Ad = l2Ads.find((a: any) => 
