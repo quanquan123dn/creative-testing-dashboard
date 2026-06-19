@@ -27,12 +27,22 @@ export interface AppLovinDecisionConfig {
 }
 
 export const APPLOVIN_DEFAULT_CONFIG: AppLovinDecisionConfig = {
-  roas_3d_pass: 70,
-  buyer_rate_pass: 5,
-  roas_3d_watching: 50,
-  buyer_rate_watching: 3,
+  roas_3d_pass: 57.8,
+  buyer_rate_pass: 5.6,
+  roas_3d_watching: 40,
+  buyer_rate_watching: 4.1,
   min_spend: 10,
-  min_installs: 5,
+  min_installs: 100,
+  min_purchasers: 10,
+};
+
+export const FB_LAYER2_DEFAULT_CONFIG: AppLovinDecisionConfig = {
+  roas_3d_pass: 68,
+  buyer_rate_pass: 9.5,
+  roas_3d_watching: 40,
+  buyer_rate_watching: 6,
+  min_spend: 10,
+  min_installs: 100,
   min_purchasers: 10,
 };
 
