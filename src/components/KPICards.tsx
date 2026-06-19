@@ -36,6 +36,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
   const watching = ads.filter((a) => a.decision_result.decision === 'watching').length;
   const kills = ads.filter((a) => a.decision_result.decision === 'kill').length;
   const newAds = ads.filter((a) => a.decision_result.decision === 'new').length;
+  const passNotTested = ads.filter((a) => a.decision_result.decision === 'winner' && a.layer2_status === 'Chưa test').length;
 
   const ipmColor = avgIPM >= config.ipm_winner ? '#10b981' : avgIPM >= config.ipm_watching ? '#f59e0b' : '#ef4444';
 
@@ -94,10 +95,18 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       kills,
       newAds,
     },
+    {
+      id: 'kpi-l2-queue',
+      label: 'Pending L2 Test',
+      value: loading ? null : formatNumber(passNotTested, 0),
+      sub: loading ? null : 'Pass L1, Chưa test L2',
+      icon: '🚀',
+      color: '#f43f5e',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 fade-in-up">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 fade-in-up">
       {cards.map((card) => (
         <div
           key={card.id}
