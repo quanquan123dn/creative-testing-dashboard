@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
-import { ChevronUp, ChevronDown, Play, AlertTriangle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle } from 'lucide-react';
 import Image from 'next/image';
 
 interface CreativeTableProps {
@@ -36,17 +36,21 @@ function fmtK(n: number) {
 
 
 function DecisionBadge({ result }: { result: EnrichedAd['decision_result'] }) {
+  const Icon = result.decision === 'winner' ? Trophy :
+               result.decision === 'watching' ? Clock :
+               result.decision === 'kill' ? XCircle : Circle;
+
   return (
     <div className="flex flex-col gap-1">
       <span
-        className="badge"
+        className="badge px-2.5 py-1"
         style={{
           background: result.hexBg,
           color: result.hexColor,
           borderColor: result.hexBorder,
         }}
       >
-        {result.emoji} {result.label}
+        <Icon size={12} /> {result.label}
       </span>
       {result.warnings.length > 0 && (
         <div className="flex items-center gap-1" title={result.warnings.join(' | ')} style={{ color: '#f59e0b', cursor: 'help' }}>
@@ -149,12 +153,12 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         <span className="text-xs" style={{ color: '#64748b' }}>Filter:</span>
         <div className="flex gap-1">
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
-            const labels: Record<FilterDecision, string> = {
+            const labels: Record<FilterDecision, React.ReactNode> = {
               all: `All (${filterCounts.all})`,
-              winner: `🏆 Pass (${filterCounts.winner})`,
-              watching: `⏳ Iterate (${filterCounts.watching})`,
-              kill: `❌ Fail (${filterCounts.kill})`,
-              new: `🔵 New (${filterCounts.new})`
+              winner: <span className="flex items-center gap-1"><Trophy size={12} /> Pass ({filterCounts.winner})</span>,
+              watching: <span className="flex items-center gap-1"><Clock size={12} /> Iterate ({filterCounts.watching})</span>,
+              kill: <span className="flex items-center gap-1"><XCircle size={12} /> Fail ({filterCounts.kill})</span>,
+              new: <span className="flex items-center gap-1"><Circle size={12} fill="currentColor" /> New ({filterCounts.new})</span>
             };
             const active = filterDecision === d;
             return (

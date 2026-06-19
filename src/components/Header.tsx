@@ -57,13 +57,13 @@ export default function Header({
             </div>
 
             {campaignName && (
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)'
+              <div className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-xl backdrop-blur-md" style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
               }}>
-                <Activity size={12} className="text-blue-400" />
-                <span className="text-xs font-mono" style={{ color: '#94a3b8', maxWidth: '300px' }}>
-                  {campaignName.length > 45 ? campaignName.slice(0, 45) + '…' : campaignName}
+                <Activity size={14} className="text-blue-400 opacity-70" />
+                <span className="text-xs font-mono tracking-wide" style={{ color: '#cbd5e1', maxWidth: '400px' }}>
+                  {campaignName.length > 55 ? campaignName.slice(0, 55) + '…' : campaignName}
                 </span>
               </div>
             )}

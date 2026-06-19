@@ -2,6 +2,7 @@
 
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig } from '@/lib/decision-engine';
+import { DollarSign, Smartphone, MousePointerClick, Download, Target, Trophy, Rocket, Clock, XCircle, CheckCircle2 } from 'lucide-react';
 
 interface KPICardsProps {
   ads: EnrichedAd[];
@@ -46,7 +47,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Total Spend',
       value: loading ? null : formatCurrency(totalSpend),
       sub: loading ? null : `${ads.filter(a => a.status === 'ACTIVE').length} active ads`,
-      icon: '💸',
+      icon: <DollarSign size={20} />,
       color: '#3b82f6',
     },
     {
@@ -54,7 +55,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Avg IPM',
       value: loading ? null : formatNumber(avgIPM),
       sub: loading ? null : `Benchmark: ${config.ipm_winner}`,
-      icon: '📲',
+      icon: <Smartphone size={20} />,
       color: ipmColor,
       highlight: true,
     },
@@ -63,7 +64,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Avg CTR',
       value: loading ? null : `${avgCTR.toFixed(2)}%`,
       sub: loading ? null : `${formatNumber(totalClicks, 0)} clicks`,
-      icon: '👆',
+      icon: <MousePointerClick size={20} />,
       color: '#8b5cf6',
     },
     {
@@ -71,7 +72,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Avg Click-to-Install',
       value: loading ? null : `${avgC2I.toFixed(1)}%`,
       sub: loading ? null : `${formatNumber(totalInstalls, 0)} installs`,
-      icon: '📦',
+      icon: <Download size={20} />,
       color: '#06b6d4',
     },
     {
@@ -79,15 +80,15 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Avg CPI',
       value: loading ? null : formatCurrency(avgCPI),
       sub: loading ? null : formatNumber(totalImpressions, 0) + ' impressions',
-      icon: '🎯',
+      icon: <Target size={20} />,
       color: '#f59e0b',
     },
     {
       id: 'kpi-decisions',
       label: 'Decisions',
-      value: loading ? null : `${winners}🏆 ${watching}⏳ ${kills}❌`,
+      value: null, // Custom rendered
       sub: loading ? null : `${newAds} chưa đủ 10K impr`,
-      icon: '🏆',
+      icon: <Trophy size={20} />,
       color: '#10b981',
       isDecision: true,
       winners,
@@ -100,7 +101,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
       label: 'Pending L2 Test',
       value: loading ? null : formatNumber(passNotTested, 0),
       sub: loading ? null : 'Pass L1, Chưa test L2',
-      icon: '🚀',
+      icon: <Rocket size={20} />,
       color: '#f43f5e',
     },
   ];
@@ -129,16 +130,19 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
           {loading ? (
             <div className="h-6 rounded shimmer" />
           ) : card.isDecision ? (
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-sm font-bold" style={{ color: '#10b981' }}>
-                {card.winners}🏆
-              </span>
-              <span className="text-sm font-bold" style={{ color: '#f59e0b' }}>
-                {card.watching}⏳
-              </span>
-              <span className="text-sm font-bold" style={{ color: '#ef4444' }}>
-                {card.kills}❌
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5" style={{ color: '#10b981' }}>
+                <Trophy size={16} />
+                <span className="text-lg font-bold">{card.winners}</span>
+              </div>
+              <div className="flex items-center gap-1.5" style={{ color: '#f59e0b' }}>
+                <Clock size={16} />
+                <span className="text-lg font-bold">{card.watching}</span>
+              </div>
+              <div className="flex items-center gap-1.5" style={{ color: '#ef4444' }}>
+                <XCircle size={16} />
+                <span className="text-lg font-bold">{card.kills}</span>
+              </div>
             </div>
           ) : (
             <div

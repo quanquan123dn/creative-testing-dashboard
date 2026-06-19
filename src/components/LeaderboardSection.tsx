@@ -1,4 +1,5 @@
 'use client';
+import { Medal, Trophy, MousePointerClick, Download, TrendingUp } from 'lucide-react';
 
 interface LeaderboardItem {
   name: string;
@@ -8,7 +9,7 @@ interface LeaderboardItem {
 
 interface LeaderboardProps {
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   items: LeaderboardItem[];
   formatValue: (v: number) => string;
   accentColor: string;
@@ -20,17 +21,17 @@ function Leaderboard({ title, icon, items, formatValue, accentColor, benchmarkVa
   const top5 = items.slice(0, 5);
   const maxVal = top5.length > 0 ? Math.max(...top5.map(i => i.value)) : 1;
 
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 0) return '🥇';
-    if (rank === 1) return '🥈';
-    if (rank === 2) return '🥉';
-    return `#${rank + 1}`;
+  const getMedalIcon = (rank: number) => {
+    if (rank === 0) return <Medal size={14} color="#fbbf24" />; // Gold
+    if (rank === 1) return <Medal size={14} color="#94a3b8" />; // Silver
+    if (rank === 2) return <Medal size={14} color="#b45309" />; // Bronze
+    return <span className="text-[10px] font-bold text-slate-500">#{rank + 1}</span>;
   };
 
   return (
     <div className="glass-card p-4" style={{ minWidth: 0 }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-base">{icon}</span>
+        <span className="text-base" style={{ color: accentColor }}>{icon}</span>
         <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{title}</h4>
       </div>
       {benchmarkValue !== undefined && benchmarkLabel && (
@@ -50,11 +51,8 @@ function Leaderboard({ title, icon, items, formatValue, accentColor, benchmarkVa
             <div key={item.id} className="group">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs w-6 text-center flex-shrink-0" style={{
-                    color: idx < 3 ? '#e2e8f0' : '#64748b',
-                    fontWeight: idx < 3 ? 700 : 400,
-                  }}>
-                    {getMedalEmoji(idx)}
+                  <span className="flex justify-center w-6 flex-shrink-0">
+                    {getMedalIcon(idx)}
                   </span>
                   <span className="text-xs truncate" style={{ color: '#cbd5e1', maxWidth: '120px' }} title={item.name}>
                     {item.name}
@@ -66,12 +64,13 @@ function Leaderboard({ title, icon, items, formatValue, accentColor, benchmarkVa
                   {formatValue(item.value)}
                 </span>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
+              <div className="h-1 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${accentColor}80, ${accentColor})`,
+                    background: `linear-gradient(90deg, transparent, ${accentColor})`,
+                    boxShadow: `0 0 10px ${accentColor}40`
                   }}
                 />
               </div>
@@ -136,8 +135,8 @@ export default function LeaderboardSection({ data, loading, ipmBenchmark }: Lead
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 fade-in-up">
       <Leaderboard
-        title="Top IPM"
-        icon="📲"
+        title="TOP IPM"
+        icon={<TrendingUp size={16} />}
         items={sortedByIPM}
         formatValue={(v) => v.toFixed(2)}
         accentColor="#10b981"
@@ -145,15 +144,15 @@ export default function LeaderboardSection({ data, loading, ipmBenchmark }: Lead
         benchmarkLabel={ipmBenchmark ? `≥ ${ipmBenchmark}` : undefined}
       />
       <Leaderboard
-        title="Top CTR"
-        icon="👆"
+        title="TOP CTR"
+        icon={<MousePointerClick size={16} />}
         items={sortedByCTR}
         formatValue={(v) => `${v.toFixed(2)}%`}
         accentColor="#8b5cf6"
       />
       <Leaderboard
-        title="Top CTI"
-        icon="📦"
+        title="TOP CTI"
+        icon={<Download size={16} />}
         items={sortedByCVR}
         formatValue={(v) => `${v.toFixed(1)}%`}
         accentColor="#06b6d4"
