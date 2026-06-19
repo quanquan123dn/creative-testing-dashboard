@@ -125,16 +125,16 @@ export default function PLATab() {
     return <span style={{ color: '#60a5fa', fontSize: '10px' }}> {sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  const columns: { key: SortKey; label: string; align?: 'right' | 'left' }[] = [
-    { key: 'creative_pack_name', label: 'Creative Pack', align: 'left' },
-    { key: 'spend', label: 'Spend', align: 'right' },
-    { key: 'starts', label: 'Impressions', align: 'right' },
-    { key: 'installs', label: 'Installs', align: 'right' },
-    { key: 'ipm', label: 'IPM', align: 'right' },
-    { key: 'ctr', label: 'CTR', align: 'right' },
-    { key: 'cvr', label: 'CVR', align: 'right' },
-    { key: 'cpm', label: 'CPM', align: 'right' },
-    { key: 'cpi', label: 'CPI', align: 'right' },
+  const columns: { key: SortKey; label: string; align?: 'right' | 'left'; width?: string }[] = [
+    { key: 'creative_pack_name', label: 'Creative Pack', align: 'left', width: '180px' },
+    { key: 'spend', label: 'Spend', align: 'right', width: '85px' },
+    { key: 'starts', label: 'Impr', align: 'right', width: '85px' },
+    { key: 'installs', label: 'Installs', align: 'right', width: '75px' },
+    { key: 'ipm', label: 'IPM', align: 'right', width: '100px' },
+    { key: 'ctr', label: 'CTR', align: 'right', width: '70px' },
+    { key: 'cvr', label: 'CVR', align: 'right', width: '70px' },
+    { key: 'cpm', label: 'CPM', align: 'right', width: '75px' },
+    { key: 'cpi', label: 'CPI', align: 'right', width: '75px' },
   ];
 
   return (
@@ -251,7 +251,7 @@ export default function PLATab() {
 
         {/* Table */}
         <div className="overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr style={{ background: '#0f1629' }}>
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#64748b', width: '40px' }}>
@@ -260,8 +260,8 @@ export default function PLATab() {
                 {columns.map(col => (
                   <th
                     key={col.key}
-                    className={`px-4 py-3 text-xs font-medium cursor-pointer hover:text-slate-300 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'}`}
-                    style={{ color: sortKey === col.key ? '#60a5fa' : '#64748b' }}
+                    className={`px-3 py-3 text-xs font-medium cursor-pointer hover:text-slate-300 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    style={{ color: sortKey === col.key ? '#60a5fa' : '#64748b', width: col.width }}
                     onClick={() => handleSort(col.key)}
                   >
                     {col.label}{sortArrow(col.key)}
