@@ -5,6 +5,7 @@ import { AdInsight } from '@/lib/meta-api';
 import { scoreCreative, DEFAULT_CONFIG, DecisionConfig } from '@/lib/decision-engine';
 import VideoTab from '@/components/VideoTab';
 import PLATab from '@/components/PLATab';
+import AppLovinTab from '@/components/AppLovinTab';
 import Header from '@/components/Header';
 
 export interface EnrichedAd extends AdInsight {
@@ -12,7 +13,7 @@ export interface EnrichedAd extends AdInsight {
 }
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'video' | 'pla'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'pla' | 'applovin'>('video');
   const [datePreset, setDatePreset] = useState('last_30d');
   const [ads, setAds] = useState<EnrichedAd[]>([]);
   const [campaignName, setCampaignName] = useState<string | null>(null);
@@ -93,6 +94,15 @@ export default function DashboardPage() {
             >
               🖼️ Test PLA
             </button>
+            <button
+              onClick={() => setActiveTab('applovin')}
+              className={`px-5 py-3 rounded-t-lg text-sm font-medium border border-b-0 transition-all duration-200 ${
+                activeTab === 'applovin' ? 'tab-active' : 'tab-inactive'
+              }`}
+              id="tab-applovin"
+            >
+              🚀 Layer 2 AppLovin
+            </button>
           </div>
         </div>
       </div>
@@ -118,6 +128,7 @@ export default function DashboardPage() {
           />
         )}
         {activeTab === 'pla' && <PLATab />}
+        {activeTab === 'applovin' && <AppLovinTab />}
       </div>
     </div>
   );
