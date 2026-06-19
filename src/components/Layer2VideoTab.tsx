@@ -7,9 +7,11 @@ import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, FB_LAYER2_DEFAULT_CONFI
 interface EnrichedAd extends AppsFlyerAd {
   has_af_data: boolean;
   decision_result: AppLovinDecisionResult;
+  ipm: number;
+  cpa: number;
 }
 
-type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'revenue';
+type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
 
 export default function Layer2VideoTab() {
   const [ads, setAds] = useState<EnrichedAd[]>([]);
@@ -55,6 +57,8 @@ export default function Layer2VideoTab() {
         const purchasers = afAd ? afAd.purchasers : 0;
         const buyer_rate = afAd ? afAd.buyer_rate : 0;
         const revenue = afAd ? afAd.revenue : 0;
+        const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
+        const cpa = purchasers > 0 ? spend / purchasers : 0;
 
         return {
           ad_name: metaAd.ad_name,
@@ -71,6 +75,8 @@ export default function Layer2VideoTab() {
           ctr,
           cpi,
           cpm,
+          ipm,
+          cpa,
           buyer_rate,
           has_af_data: !!afAd,
           decision_result: scoreAppLovinCreative({
@@ -138,12 +144,12 @@ export default function Layer2VideoTab() {
   const columns: { key: SortKey; label: string; align?: 'right' | 'left'; width?: string }[] = [
     { key: 'ad_name', label: 'Ad Creative', align: 'left', width: '180px' },
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
-    { key: 'impressions', label: 'Impr', align: 'right', width: '80px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '70px' },
-    { key: 'roi', label: 'ROI', align: 'right', width: '90px' },
+    { key: 'ipm', label: 'IPM', align: 'right', width: '70px' },
+    { key: 'roi', label: 'ROAS', align: 'right', width: '90px' },
     { key: 'buyer_rate', label: 'Buyer Rate', align: 'right', width: '85px' },
     { key: 'purchasers', label: 'Purchasers', align: 'right', width: '80px' },
-    { key: 'revenue', label: 'Revenue', align: 'right', width: '80px' },
+    { key: 'cpa', label: 'CPA', align: 'right', width: '80px' },
     { key: 'ctr', label: 'CTR', align: 'right', width: '65px' },
     { key: 'cpm', label: 'CPM', align: 'right', width: '70px' },
     { key: 'cpi', label: 'CPI', align: 'right', width: '70px' },
@@ -308,8 +314,8 @@ export default function Layer2VideoTab() {
                         <div className="font-medium text-slate-200 text-xs truncate" title={ad.ad_name}>{ad.ad_name}</div>
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cost)}</td>
-                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.impressions.toLocaleString()}</td>
                       <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: '#e2e8f0' }}>{ad.installs.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.ipm.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
@@ -324,7 +330,7 @@ export default function Layer2VideoTab() {
                         {ad.has_af_data ? (ad.buyer_rate > 0 ? `${ad.buyer_rate.toFixed(1)}%` : '\u2014') : 'N/A'}
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.purchasers > 0 ? ad.purchasers : '\u2014') : 'N/A'}</td>
-                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? formatCurrency(ad.revenue) : 'N/A'}</td>
+                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.cpa > 0 ? formatCurrency(ad.cpa) : '\u2014') : 'N/A'}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.ctr.toFixed(2)}%</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cpm)}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.installs > 0 ? formatCurrency(ad.cpi) : '\u2014'}</td>
