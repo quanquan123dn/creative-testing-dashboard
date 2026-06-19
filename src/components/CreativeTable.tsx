@@ -12,7 +12,7 @@ interface CreativeTableProps {
   config: DecisionConfig;
 }
 
-type SortKey = 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'hold_rate' | 'installs' | 'impressions' | 'frequency';
+type SortKey = 'ad_name' | 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'hold_rate' | 'installs' | 'impressions' | 'frequency';
 type SortDir = 'asc' | 'desc';
 type FilterDecision = 'all' | 'winner' | 'watching' | 'kill' | 'new';
 
@@ -132,6 +132,11 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       result = result.filter((a) => a.status === filterStatus);
     }
     result.sort((a, b) => {
+      if (sortKey === 'ad_name') {
+        const aName = a.ad_name.toLowerCase();
+        const bName = b.ad_name.toLowerCase();
+        return sortDir === 'desc' ? bName.localeCompare(aName) : aName.localeCompare(bName);
+      }
       const aVal = (a as any)[sortKey] as number;
       const bVal = (b as any)[sortKey] as number;
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
@@ -217,7 +222,9 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ minWidth: 220 }}>Creative</th>
+              <th style={{ minWidth: 220, ...thStyle('ad_name'), cursor: 'pointer' }} onClick={() => handleSort('ad_name')}>
+                Creative <SortIcon column="ad_name" sortKey={sortKey} sortDir={sortDir} />
+              </th>
               <th>Status</th>
               <th style={thStyle('spend')} onClick={() => handleSort('spend')}>
                 Spend <SortIcon column="spend" sortKey={sortKey} sortDir={sortDir} />
