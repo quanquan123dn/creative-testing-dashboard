@@ -105,13 +105,13 @@ export default function DashboardPage() {
       />
 
       {/* Tab Navigation */}
-      <div className="border-b" style={{ borderColor: '#1e2d4a', background: '#0f1629' }}>
+      <div className="border-b sticky top-0 z-10 backdrop-blur-xl" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(15,22,41,0.7)' }}>
         <div className="max-w-[1600px] mx-auto px-6">
-          <div className="flex gap-1 pt-2">
+          <div className="flex gap-8">
             <button
               onClick={() => setActiveTab('video')}
-              className={`px-5 py-3 rounded-t-lg text-sm font-medium border border-b-0 transition-all duration-200 ${
-                activeTab === 'video' ? 'tab-active' : 'tab-inactive'
+              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === 'video' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
               }`}
               id="tab-video"
             >
@@ -119,8 +119,8 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('pla')}
-              className={`px-5 py-3 rounded-t-lg text-sm font-medium border border-b-0 transition-all duration-200 ${
-                activeTab === 'pla' ? 'tab-active' : 'tab-inactive'
+              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === 'pla' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
               }`}
               id="tab-pla"
             >
@@ -128,8 +128,8 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('applovin')}
-              className={`px-5 py-3 rounded-t-lg text-sm font-medium border border-b-0 transition-all duration-200 ${
-                activeTab === 'applovin' ? 'tab-active' : 'tab-inactive'
+              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === 'applovin' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
               }`}
               id="tab-applovin"
             >
@@ -137,8 +137,8 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('layer2video')}
-              className={`px-5 py-3 rounded-t-lg text-sm font-medium border border-b-0 transition-all duration-200 ${
-                activeTab === 'layer2video' ? 'tab-active' : 'tab-inactive'
+              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                activeTab === 'layer2video' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
               }`}
               id="tab-layer2video"
             >

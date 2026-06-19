@@ -35,7 +35,7 @@ export default function Header({
   onSync,
 }: HeaderProps) {
   return (
-    <header style={{ background: '#0f1629', borderBottom: '1px solid #1e2d4a' }}>
+    <header className="sticky top-0 z-20 backdrop-blur-xl" style={{ background: 'rgba(15,22,41,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="max-w-[1600px] mx-auto px-6 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Left: Logo + Campaign */}
@@ -57,12 +57,13 @@ export default function Header({
             </div>
 
             {campaignName && (
-              <div className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-xl backdrop-blur-md" style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full shadow-inner" style={{
+                background: 'rgba(0, 0, 0, 0.2)',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.05)'
               }}>
-                <Activity size={14} className="text-blue-400 opacity-70" />
-                <span className="text-xs font-mono tracking-wide" style={{ color: '#cbd5e1', maxWidth: '400px' }}>
+                <Activity size={14} className="text-blue-400 opacity-70 animate-pulse" />
+                <span className="text-xs font-medium tracking-wide" style={{ color: '#cbd5e1', maxWidth: '400px' }}>
                   {campaignName.length > 55 ? campaignName.slice(0, 55) + '…' : campaignName}
                 </span>
               </div>
@@ -83,18 +84,17 @@ export default function Header({
             </div>
 
             {/* Date preset picker */}
-            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #1e2d4a' }}>
+            <div className="flex items-center p-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
               {DATE_PRESETS.map((p) => (
                 <button
                   key={p.value}
                   onClick={() => onDatePresetChange(p.value)}
-                  className="px-3 py-1.5 text-xs font-medium transition-all duration-150"
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${datePreset === p.value ? 'shadow-sm' : 'hover:bg-white/5'}`}
                   style={{
                     background: datePreset === p.value
-                      ? 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.2))'
+                      ? 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(139,92,246,0.3))'
                       : 'transparent',
-                    color: datePreset === p.value ? '#e2e8f0' : '#64748b',
-                    borderRight: '1px solid #1e2d4a',
+                    color: datePreset === p.value ? '#fff' : '#94a3b8',
                   }}
                   id={`date-preset-${p.value}`}
                 >
@@ -105,18 +105,18 @@ export default function Header({
 
             {/* Sync button */}
             <button
+              id="btn-sync"
               onClick={() => onSync(true)}
               disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 shadow-sm"
               style={{
-                background: 'rgba(59, 130, 246, 0.15)',
+                background: loading ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+                color: loading ? '#64748b' : '#60a5fa',
                 border: '1px solid rgba(59, 130, 246, 0.3)',
-                color: '#60a5fa',
               }}
-              id="btn-sync"
             >
-              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              Sync
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Syncing...' : 'Sync'}
             </button>
           </div>
         </div>
