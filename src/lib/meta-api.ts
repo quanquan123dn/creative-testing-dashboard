@@ -135,7 +135,9 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     nextUrl = page.paging?.next || null;
   }
 
-  // Map insight rows to AdInsight objects and aggregate by ad_name
+  // Map insight rows to AdInsight objects, aggregate by ad_id
+  // (Meta API may return multiple rows per ad_id due to pagination/breakdowns,
+  //  but each ad_id is a separate ad with its own impression cap)
   const aggregatedAds: Record<string, AdInsight> = {};
 
   allInsightRows.forEach((raw) => {
@@ -154,8 +156,8 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     const vThruplay = extractAction(actions, 'video_watches_at_100_pct') || 0;
     const reach = parseInt(raw.reach as string || '0', 10);
 
-    if (!aggregatedAds[adName]) {
-      aggregatedAds[adName] = {
+    if (!aggregatedAds[adId]) {
+      aggregatedAds[adId] = {
         ad_id: adId,
         ad_name: adName,
         status: adMeta?.status || 'UNKNOWN',
@@ -172,7 +174,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
       };
     }
 
-    const agg = aggregatedAds[adName];
+    const agg = aggregatedAds[adId];
     agg.spend += spend;
     agg.impressions += impressions;
     agg.clicks += clicks;
@@ -196,10 +198,9 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
   });
 
   // Also include ads with NO spend data (so they show as "New" in table)
-  const adsWithInsight = new Set(adsData.map(a => a.ad_name));
+  const adsWithInsight = new Set(adsData.map(a => a.ad_id));
   adsMetadata.forEach(ad => {
-    if (!adsWithInsight.has(ad.name)) {
-      adsWithInsight.add(ad.name);
+    if (!adsWithInsight.has(ad.id)) {
       adsData.push({
         ad_id: ad.id,
         ad_name: ad.name,
