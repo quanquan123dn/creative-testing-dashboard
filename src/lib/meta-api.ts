@@ -135,10 +135,9 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     nextUrl = page.paging?.next || null;
   }
 
-  // Map insight rows to AdInsight objects, aggregate by ad_id
-  // (Meta API may return multiple rows per ad_id due to pagination/breakdowns,
-  //  but each ad_id is a separate ad with its own impression cap)
-  const aggregatedAds: Record<string, AdInsight> = {};
+  // Step 1: Aggregate insight rows by ad_id
+  // (Meta API may return multiple rows per ad_id due to pagination/breakdowns)
+  const byAdId: Record<string, AdInsight> = {};
 
   allInsightRows.forEach((raw) => {
     const adId = raw.ad_id as string;
@@ -156,8 +155,8 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     const vThruplay = extractAction(actions, 'video_watches_at_100_pct') || 0;
     const reach = parseInt(raw.reach as string || '0', 10);
 
-    if (!aggregatedAds[adId]) {
-      aggregatedAds[adId] = {
+    if (!byAdId[adId]) {
+      byAdId[adId] = {
         ad_id: adId,
         ad_name: adName,
         status: adMeta?.status || 'UNKNOWN',
@@ -174,7 +173,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
       };
     }
 
-    const agg = aggregatedAds[adId];
+    const agg = byAdId[adId];
     agg.spend += spend;
     agg.impressions += impressions;
     agg.clicks += clicks;
@@ -184,7 +183,8 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     agg.video_thruplay += vThruplay;
   });
 
-  const adsData: AdInsight[] = Object.values(aggregatedAds).map(agg => {
+  // Calculate derived metrics for each ad_id
+  Object.values(byAdId).forEach(agg => {
     agg.ipm = agg.impressions > 0 ? (agg.installs / agg.impressions) * 1000 : 0;
     agg.cpi = agg.installs > 0 ? agg.spend / agg.installs : 0;
     agg.cpc = agg.clicks > 0 ? agg.spend / agg.clicks : 0;
@@ -194,13 +194,25 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     agg.hook_rate = agg.impressions > 0 ? (agg.video_3s_views / agg.impressions) * 100 : 0;
     agg.hold_rate = agg.video_3s_views > 0 ? (agg.video_thruplay / agg.video_3s_views) * 100 : 0;
     agg.frequency = agg.reach > 0 ? agg.impressions / agg.reach : 0;
-    return agg;
   });
 
+  // Step 2: Deduplicate by ad_name — keep the ad_id with highest impressions
+  // (same creative may run in multiple ad sets, each with its own 10K cap)
+  const bestByName: Record<string, AdInsight> = {};
+  Object.values(byAdId).forEach(ad => {
+    const key = ad.ad_name;
+    if (!bestByName[key] || ad.impressions > bestByName[key].impressions) {
+      bestByName[key] = ad;
+    }
+  });
+
+  const adsData: AdInsight[] = Object.values(bestByName);
+
   // Also include ads with NO spend data (so they show as "New" in table)
-  const adsWithInsight = new Set(adsData.map(a => a.ad_id));
+  const adsWithInsight = new Set(adsData.map(a => a.ad_name));
   adsMetadata.forEach(ad => {
-    if (!adsWithInsight.has(ad.id)) {
+    if (!adsWithInsight.has(ad.name)) {
+      adsWithInsight.add(ad.name);
       adsData.push({
         ad_id: ad.id,
         ad_name: ad.name,
