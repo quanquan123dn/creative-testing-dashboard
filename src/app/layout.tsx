@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Creative Testing Dashboard",
+  title: "Dashboard",
   description: "Meta Ads Creative Testing Performance Dashboard — Layer 1 CPI Campaign Monitor",
 };
 
