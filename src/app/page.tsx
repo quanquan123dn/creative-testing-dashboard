@@ -95,55 +95,57 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#0a0e1a' }}>
-      <Header
-        campaignName={campaignName}
-        lastSync={lastSync}
-        loading={loading}
-        datePreset={datePreset}
-        onDatePresetChange={setDatePreset}
-        onSync={fetchData}
-      />
+      <div className="sticky top-0 z-20 backdrop-blur-xl" style={{ background: 'rgba(15,22,41,0.85)' }}>
+        <Header
+          campaignName={campaignName}
+          lastSync={lastSync}
+          loading={loading}
+          datePreset={datePreset}
+          onDatePresetChange={setDatePreset}
+          onSync={fetchData}
+        />
 
-      {/* Tab Navigation */}
-      <div className="border-b sticky top-0 z-10 backdrop-blur-xl" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(15,22,41,0.7)' }}>
-        <div className="max-w-[1600px] mx-auto px-6">
-          <div className="flex gap-8">
-            <button
-              onClick={() => setActiveTab('video')}
-              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
-                activeTab === 'video' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
-              }`}
-              id="tab-video"
-            >
-              📹 Layer 1 Video
-            </button>
-            <button
-              onClick={() => setActiveTab('pla')}
-              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
-                activeTab === 'pla' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
-              }`}
-              id="tab-pla"
-            >
-              🖼️ Layer 1 PLA
-            </button>
-            <button
-              onClick={() => setActiveTab('applovin')}
-              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
-                activeTab === 'applovin' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
-              }`}
-              id="tab-applovin"
-            >
-              🚀 Layer 2 AppLovin
-            </button>
-            <button
-              onClick={() => setActiveTab('layer2video')}
-              className={`py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
-                activeTab === 'layer2video' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
-              }`}
-              id="tab-layer2video"
-            >
-              🎬 Layer 2 Video
-            </button>
+        {/* Tab Navigation */}
+        <div className="border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="max-w-[1600px] mx-auto px-6">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('video')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
+                  activeTab === 'video' ? 'border-blue-500 text-blue-400 bg-blue-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                }`}
+                id="tab-video"
+              >
+                📹 Layer 1 Video
+              </button>
+              <button
+                onClick={() => setActiveTab('pla')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
+                  activeTab === 'pla' ? 'border-blue-500 text-blue-400 bg-blue-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                }`}
+                id="tab-pla"
+              >
+                🖼️ Layer 1 PLA
+              </button>
+              <button
+                onClick={() => setActiveTab('applovin')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
+                  activeTab === 'applovin' ? 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                }`}
+                id="tab-applovin"
+              >
+                🚀 Layer 2 AppLovin
+              </button>
+              <button
+                onClick={() => setActiveTab('layer2video')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
+                  activeTab === 'layer2video' ? 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                }`}
+                id="tab-layer2video"
+              >
+                🎬 Layer 2 Video
+              </button>
+            </div>
           </div>
         </div>
       </div>

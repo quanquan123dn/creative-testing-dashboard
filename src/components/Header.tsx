@@ -36,7 +36,7 @@ export default function Header({
   onSync,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-20 backdrop-blur-xl" style={{ background: 'rgba(15,22,41,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="max-w-[1600px] mx-auto px-6 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Left: Logo + Campaign */}
