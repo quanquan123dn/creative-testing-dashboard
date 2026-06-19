@@ -30,7 +30,7 @@ export default function AppLovinTab() {
       if (!json.success) throw new Error(json.error);
 
       const enriched: EnrichedAppLovinAd[] = (json.data.ads || [])
-        .filter((ad: AppLovinCreativeSet) => ad.cost > 0)
+        .filter((ad: AppLovinCreativeSet) => ad.cost >= 0.01)
         .map((ad: AppLovinCreativeSet) => ({
         ...ad,
         decision_result: scoreAppLovinCreative({

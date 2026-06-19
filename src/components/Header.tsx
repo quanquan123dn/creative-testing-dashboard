@@ -56,18 +56,7 @@ export default function Header({
               </div>
             </div>
 
-            {campaignName && (
-              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full shadow-inner" style={{
-                background: 'rgba(0, 0, 0, 0.2)',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.05)'
-              }}>
-                <Activity size={14} className="text-blue-400 opacity-70 animate-pulse" />
-                <span className="text-xs font-medium tracking-wide" style={{ color: '#cbd5e1', maxWidth: '400px' }}>
-                  {campaignName.length > 55 ? campaignName.slice(0, 55) + '…' : campaignName}
-                </span>
-              </div>
-            )}
+
           </div>
 
           {/* Right: controls */}
