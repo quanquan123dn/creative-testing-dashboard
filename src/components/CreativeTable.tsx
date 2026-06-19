@@ -129,7 +129,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
     return result;
-  }, [ads, sortKey, sortDir, filterDecision, filterStatus]);
+  }, [ads, sortKey, sortDir, filterDecision, filterL2Status]);
 
   const filterCounts = useMemo(() => {
     const counts = { all: 0, winner: 0, watching: 0, kill: 0, new: 0 };
