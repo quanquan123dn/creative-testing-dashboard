@@ -115,7 +115,7 @@ export default function DashboardPage() {
               }`}
               id="tab-video"
             >
-              📹 Test Video
+              📹 Layer 1 Video
             </button>
             <button
               onClick={() => setActiveTab('pla')}
@@ -124,7 +124,7 @@ export default function DashboardPage() {
               }`}
               id="tab-pla"
             >
-              🖼️ Test PLA
+              🖼️ Layer 1 PLA
             </button>
             <button
               onClick={() => setActiveTab('applovin')}
