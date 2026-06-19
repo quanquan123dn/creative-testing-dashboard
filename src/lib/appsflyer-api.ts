@@ -63,7 +63,7 @@ function parseCSV(csv: string): Record<string, string>[] {
 export async function getAppsFlyerCreativeStats(): Promise<{ campaign: string; ads: AppsFlyerAd[] }> {
   const end = new Date();
   const start = new Date();
-  start.setDate(start.getDate() - 13); // 14 days max to avoid 403
+  start.setDate(start.getDate() - 100); // 100 days to capture campaigns from March
   
   const startStr = start.toISOString().split('T')[0];
   const endStr = end.toISOString().split('T')[0];
