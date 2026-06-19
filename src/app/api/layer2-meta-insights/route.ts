@@ -9,7 +9,7 @@ function getCachedLayer2MetaInsights() {
     async () => {
       // Fetch using 'maximum' preset because campaign is from March
       // Pass the specific campaign name for Layer 2
-      const campaignName = process.env.META_LAYER2_CAMPAIGN_NAME || 'TSH009a_Mar13_US_T3_QuanNHLeo_FB_Layer 2.5 creative test';
+      const campaignName = process.env.META_LAYER2_CAMPAIGN_NAME || 'TSH009a_Jan15_US_T3_QuanNHLeo_FB_Layer 2 creative test';
       const data = await getAllAdInsights('maximum', campaignName);
       return {
         ...data,
