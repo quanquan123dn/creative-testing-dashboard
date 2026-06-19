@@ -23,6 +23,7 @@ export interface AppLovinDecisionConfig {
   buyer_rate_watching: number; // Buyer Rate >= this = watching
   min_spend: number;          // Minimum spend to evaluate
   min_installs: number;       // Minimum installs to evaluate
+  min_purchasers: number;     // Minimum D3 purchasers to consider test complete
 }
 
 export const APPLOVIN_DEFAULT_CONFIG: AppLovinDecisionConfig = {
@@ -32,6 +33,7 @@ export const APPLOVIN_DEFAULT_CONFIG: AppLovinDecisionConfig = {
   buyer_rate_watching: 3,
   min_spend: 10,
   min_installs: 5,
+  min_purchasers: 10,
 };
 
 export function scoreAppLovinCreative(
@@ -41,19 +43,19 @@ export function scoreAppLovinCreative(
     spend: number;
     installs: number;
     cost: number;
+    sales_3d: number;
   },
   config: AppLovinDecisionConfig = APPLOVIN_DEFAULT_CONFIG
 ): AppLovinDecisionResult {
   const warnings: string[] = [];
 
-  // Not enough data
-  const notEnoughData = metrics.spend < config.min_spend || metrics.installs < config.min_installs;
+  // Not enough data - need at least 10 D3 purchasers to consider test complete
+  const notEnoughData = metrics.sales_3d < config.min_purchasers;
   if (notEnoughData) {
     const reasons: string[] = [];
+    reasons.push(`${metrics.sales_3d}/${config.min_purchasers} purchasers D3`);
     if (metrics.installs < config.min_installs)
       reasons.push(`${metrics.installs}/${config.min_installs} installs`);
-    if (metrics.spend < config.min_spend)
-      reasons.push(`$${metrics.spend.toFixed(0)}/$${config.min_spend} spend`);
     return {
       decision: 'new',
       label: 'New',
@@ -61,7 +63,7 @@ export function scoreAppLovinCreative(
       hexColor: '#60a5fa',
       hexBg: 'rgba(59,130,246,0.12)',
       hexBorder: 'rgba(59,130,246,0.3)',
-      reason: `Cần thêm data: ${reasons.join(', ')}`,
+      reason: `Chưa đủ data: ${reasons.join(', ')}`,
       warnings,
     };
   }

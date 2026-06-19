@@ -35,6 +35,7 @@ export default function AppLovinTab() {
           spend: ad.cost,
           installs: ad.installs,
           cost: ad.cost,
+          sales_3d: ad.sales_3d,
         }, config),
       }));
 
@@ -114,9 +115,10 @@ export default function AppLovinTab() {
     { id: 'alv-decisions', icon: '🏆', label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} chấm điểm, ${ads.length - winners - watching - fails} mới`, isDecision: true, winners, watching, fails },
   ];
 
-  // Leaderboard data
-  const roasLeaderboard = [...ads].filter(a => a.cost > 0).sort((a, b) => b.roas_3d - a.roas_3d).slice(0, 5).map(a => ({ name: a.creative_set, value: a.roas_3d, formatted: `${a.roas_3d.toFixed(1)}%` }));
-  const buyerLeaderboard = [...ads].filter(a => a.installs > 0).sort((a, b) => b.buyer_rate - a.buyer_rate).slice(0, 5).map(a => ({ name: a.creative_set, value: a.buyer_rate, formatted: `${a.buyer_rate.toFixed(1)}%` }));
+  // Leaderboard data - only include creative sets with >= 10 D3 purchasers (test complete)
+  const testedAds = ads.filter(a => a.sales_3d >= 10);
+  const roasLeaderboard = [...testedAds].sort((a, b) => b.roas_3d - a.roas_3d).slice(0, 5).map(a => ({ name: a.creative_set, value: a.roas_3d, formatted: `${a.roas_3d.toFixed(1)}%` }));
+  const buyerLeaderboard = [...testedAds].sort((a, b) => b.buyer_rate - a.buyer_rate).slice(0, 5).map(a => ({ name: a.creative_set, value: a.buyer_rate, formatted: `${a.buyer_rate.toFixed(1)}%` }));
 
   const getRoasColor = (roas: number) => {
     if (roas >= 70) return '#10b981';
