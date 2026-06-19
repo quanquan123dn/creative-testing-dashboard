@@ -152,7 +152,7 @@ export default function LeaderboardSection({ data, loading, ipmBenchmark }: Lead
         accentColor="#8b5cf6"
       />
       <Leaderboard
-        title="Top CVR"
+        title="Top CTI"
         icon="📦"
         items={sortedByCVR}
         formatValue={(v) => `${v.toFixed(1)}%`}
