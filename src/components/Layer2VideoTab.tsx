@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppsFlyerAd } from '@/lib/appsflyer-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
+import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Target } from 'lucide-react';
 
 interface EnrichedAd extends AppsFlyerAd {
   has_af_data: boolean;
@@ -163,12 +164,11 @@ export default function Layer2VideoTab() {
   };
 
   const kpiCards = [
-    { id: 'l2v-spend', icon: '\ud83d\udcb0', label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
-    { id: 'l2v-roi', icon: '\ud83d\udcc8', label: 'Overall ROI', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
-    { id: 'l2v-buyer', icon: '\ud83d\uded2', label: 'Buyer Rate', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
-    { id: 'l2v-installs', icon: '\ud83d\udcf2', label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
-    { id: 'l2v-revenue', icon: '\ud83d\udcb5', label: 'Revenue', value: formatCurrency(totalRevenue), color: '#10b981', sub: `CPI: $${avgCPI.toFixed(2)}` },
-    { id: 'l2v-decisions', icon: '\ud83c\udfc6', label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
+    { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
+    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'Overall ROI', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
+    { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
+    { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
+    { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
   ];
 
   const testedAds = ads.filter(a => a.purchasers >= 10);
@@ -189,10 +189,10 @@ export default function Layer2VideoTab() {
             {loading ? (
               <div className="h-6 rounded shimmer" />
             ) : card.isDecision ? (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-sm font-bold" style={{ color: '#10b981' }}>{card.winners}🏆</span>
-                <span className="text-sm font-bold" style={{ color: '#f59e0b' }}>{card.watching}⏳</span>
-                <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{card.fails}❌</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#10b981' }}><Trophy size={14}/> {card.winners}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#f59e0b' }}><span className="text-[12px]">⏳</span> {card.watching}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#ef4444' }}><span className="text-[12px]">❌</span> {card.fails}</span>
               </div>
             ) : (
               <div className="text-lg font-bold" style={{ color: card.highlight ? getRoiColor(overallROI) : card.color }}>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UnityCreativeStat } from '@/lib/unity-api';
 import { scorePLACreative, PLA_DEFAULT_CONFIG, PLADecisionConfig, PLADecisionResult, getPLAIPMBarColor } from '@/lib/pla-decision-engine';
 import LeaderboardSection from '@/components/LeaderboardSection';
+import { DollarSign, Download, Trophy, Smartphone, Target } from 'lucide-react';
 
 interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
@@ -106,12 +107,12 @@ export default function PLATab() {
   const maxIPM = ads.length > 0 ? Math.max(...ads.map(a => a.ipm)) : 1;
 
   const kpiCards = [
-    { id: 'pla-spend', label: 'Total Spend', value: formatCurrency(totalSpend), sub: `${ads.length} creatives`, icon: '💸', color: '#3b82f6' },
-    { id: 'pla-ipm', label: 'Avg IPM', value: formatNumber(avgIPM), sub: `Benchmark: ${config.ipm_winner}`, icon: '📲', color: ipmColor, highlight: true },
-    { id: 'pla-ctr', label: 'Avg CTR', value: `${avgCTR.toFixed(2)}%`, sub: `${formatNumber(totalClicks, 0)} clicks`, icon: '👆', color: '#8b5cf6' },
-    { id: 'pla-cvr', label: 'Avg CVR', value: `${avgCVR.toFixed(1)}%`, sub: `${formatNumber(totalInstalls, 0)} installs`, icon: '📦', color: '#06b6d4' },
-    { id: 'pla-cpi', label: 'Avg CPI', value: formatCurrency(avgCPI), sub: `${formatNumber(totalStarts, 0)} impressions`, icon: '🎯', color: '#f59e0b' },
-    { id: 'pla-decisions', label: 'Decisions', value: '', sub: `${newAds} chưa đủ data`, icon: '🏆', color: '#10b981', isDecision: true },
+    { id: 'pla-spend', label: 'Total Spend', value: formatCurrency(totalSpend), sub: `${ads.length} creatives`, icon: <DollarSign size={20} />, color: '#3b82f6' },
+    { id: 'pla-ipm', label: 'Avg IPM', value: formatNumber(avgIPM), sub: `Benchmark: ${config.ipm_winner}`, icon: <Smartphone size={20} />, color: ipmColor, highlight: true },
+    { id: 'pla-ctr', label: 'Avg CTR', value: `${formatNumber(avgCTR)}%`, sub: `Benchmark: 1.5%`, icon: <Target size={20} />, color: avgCTR >= 1.5 ? '#10b981' : avgCTR >= 1.0 ? '#f59e0b' : '#ef4444' },
+    { id: 'pla-cvr', label: 'Avg CVR', value: `${formatNumber(avgCVR)}%`, sub: `Benchmark: 15%`, icon: <Download size={20} />, color: avgCVR >= 15 ? '#10b981' : avgCVR >= 10 ? '#f59e0b' : '#ef4444' },
+    { id: 'pla-installs', label: 'Total Installs', value: formatNumber(totalInstalls), sub: `${formatNumber(totalStarts)} impr`, icon: <Download size={20} />, color: '#06b6d4' },
+    { id: 'pla-decisions', label: 'Decisions', sub: `${winners + watching + fails} scored`, icon: <Trophy size={20} />, color: '#8b5cf6', isDecision: true, winners, watching, fails },
   ];
 
   // Distribution chart data
@@ -201,10 +202,10 @@ export default function PLATab() {
             {loading ? (
               <div className="h-6 rounded shimmer" />
             ) : card.isDecision ? (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-sm font-bold" style={{ color: '#10b981' }}>{winners}🏆</span>
-                <span className="text-sm font-bold" style={{ color: '#f59e0b' }}>{watching}⏳</span>
-                <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fails}❌</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#10b981' }}><Trophy size={14}/> {winners}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#f59e0b' }}><span className="text-[12px]">⏳</span> {watching}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#ef4444' }}><span className="text-[12px]">❌</span> {fails}</span>
               </div>
             ) : (
               <div className="text-lg font-bold" style={{ color: card.highlight ? ipmColor : card.color }}>

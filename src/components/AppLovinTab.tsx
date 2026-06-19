@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppLovinCreativeSet } from '@/lib/applovin-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
+import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Banknote, AlertCircle, XCircle, Clock } from 'lucide-react';
 
 interface EnrichedAppLovinAd extends AppLovinCreativeSet {
   decision_result: AppLovinDecisionResult;
@@ -107,12 +108,12 @@ export default function AppLovinTab() {
 
   // KPI cards data
   const kpiCards = [
-    { id: 'alv-spend', icon: '💰', label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} creative sets` },
-    { id: 'alv-roas', icon: '📈', label: 'Avg ROAS D3', value: `${avgRoas3d.toFixed(1)}%`, color: avgRoas3d >= 57.8 ? '#10b981' : avgRoas3d >= 40 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 57.8%`, highlight: true },
-    { id: 'alv-buyer', icon: '🛒', label: 'Avg Buyer Rate', value: `${avgBuyerRate.toFixed(1)}%`, color: avgBuyerRate >= 5.6 ? '#10b981' : avgBuyerRate >= 4.1 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 5.6%` },
-    { id: 'alv-installs', icon: '📲', label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalSales3d} purchasers D3` },
-    { id: 'alv-cpi', icon: '💵', label: 'Avg CPI', value: `$${avgCPI.toFixed(2)}`, color: '#f59e0b', sub: `${totalImpressions.toLocaleString()} impressions` },
-    { id: 'alv-decisions', icon: '🏆', label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} chấm điểm, ${ads.length - winners - watching - fails} mới`, isDecision: true, winners, watching, fails },
+    { id: 'alv-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} creative sets` },
+    { id: 'alv-roas', icon: <TrendingUp size={20} />, label: 'Avg ROAS D3', value: `${avgRoas3d.toFixed(1)}%`, color: avgRoas3d >= 57.8 ? '#10b981' : avgRoas3d >= 40 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 57.8%`, highlight: true },
+    { id: 'alv-buyer', icon: <ShoppingCart size={20} />, label: 'Avg Buyer Rate', value: `${avgBuyerRate.toFixed(1)}%`, color: avgBuyerRate >= 5.6 ? '#10b981' : avgBuyerRate >= 4.1 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 5.6%` },
+    { id: 'alv-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalSales3d} purchasers D3` },
+    { id: 'alv-cpi', icon: <Banknote size={20} />, label: 'Avg CPI', value: `$${avgCPI.toFixed(2)}`, color: '#f59e0b', sub: `${totalImpressions.toLocaleString()} impressions` },
+    { id: 'alv-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
   ];
 
   // Leaderboard data - only include creative sets with >= 10 D3 purchasers (test complete)
@@ -146,10 +147,10 @@ export default function AppLovinTab() {
             {loading ? (
               <div className="h-6 rounded shimmer" />
             ) : card.isDecision ? (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-sm font-bold" style={{ color: '#10b981' }}>{card.winners}🏆</span>
-                <span className="text-sm font-bold" style={{ color: '#f59e0b' }}>{card.watching}⏳</span>
-                <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{card.fails}❌</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#10b981' }}><Trophy size={14}/> {card.winners}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#f59e0b' }}><span className="text-[12px]">⏳</span> {card.watching}</span>
+                <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#ef4444' }}><span className="text-[12px]">❌</span> {card.fails}</span>
               </div>
             ) : (
               <div className="text-lg font-bold" style={{ color: card.highlight ? getRoasColor(avgRoas3d) : card.color }}>
