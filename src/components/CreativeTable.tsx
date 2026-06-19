@@ -306,6 +306,9 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   <td style={{ color: '#94a3b8' }}>{ad.click_to_install > 0 ? `${ad.click_to_install.toFixed(1)}%` : '—'}</td>
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpm)}</td>
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpi)}</td>
+                  <td style={{ color: ad.hook_rate > 0 && ad.hook_rate < config.hook_rate_warning ? '#f59e0b' : '#94a3b8' }}>
+                    {fmt(ad.hook_rate, 1)}{ad.hook_rate > 0 ? '%' : ''}
+                  </td>
                   <td><DecisionBadge result={ad.decision_result} /></td>
                 </tr>
               ))
