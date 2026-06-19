@@ -214,7 +214,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={thStyle('hook_rate')} onClick={() => handleSort('hook_rate')}>
                 Hook% <SortIcon column="hook_rate" sortKey={sortKey} sortDir={sortDir} />
               </th>
-              <th style={{ minWidth: 120 }}>L1 Decision</th>
+              <th style={{ minWidth: 120 }}>L1 Status</th>
               <th style={{ minWidth: 100 }}>L2 Status</th>
             </tr>
           </thead>
