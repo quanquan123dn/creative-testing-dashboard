@@ -212,7 +212,7 @@ export default function PLATab() {
               </div>
             )}
             {!loading && card.sub && (
-              <div className="text-[11px] mt-1" style={{ color: '#475569' }}>{card.sub}</div>
+              <div className="text-[11px] mt-1" style={{ color: '#94a3b8' }}>{card.sub}</div>
             )}
           </div>
         ))}
@@ -257,9 +257,6 @@ export default function PLATab() {
                 <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#64748b', width: '40px' }}>
                   #
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#64748b', width: '60px' }}>
-                  Status
-                </th>
                 {columns.map(col => (
                   <th
                     key={col.key}
@@ -270,6 +267,9 @@ export default function PLATab() {
                     {col.label}{sortArrow(col.key)}
                   </th>
                 ))}
+                <th className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#64748b', width: '60px' }}>
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -308,19 +308,6 @@ export default function PLATab() {
                       }}
                     >
                       <td className="px-4 py-3 text-xs" style={{ color: '#475569' }}>{idx + 1}</td>
-                      <td className="px-4 py-3">
-                        <div
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                          style={{
-                            background: dr.hexBg,
-                            border: `1px solid ${dr.hexBorder}`,
-                            color: dr.hexColor,
-                          }}
-                          title={dr.reason}
-                        >
-                          {dr.emoji} {dr.label}
-                        </div>
-                      </td>
                       <td className="px-4 py-3 text-left">
                         <div className="font-medium text-slate-200 text-xs">{ad.creative_pack_name}</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#475569' }}>{ad.creative_pack_id.slice(0, 12)}...</div>
@@ -361,6 +348,19 @@ export default function PLATab() {
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
                         {formatCurrency(ad.cpi)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            background: dr.hexBg,
+                            border: `1px solid ${dr.hexBorder}`,
+                            color: dr.hexColor,
+                          }}
+                          title={dr.reason}
+                        >
+                          {dr.emoji} {dr.label}
+                        </div>
                       </td>
                     </tr>
                   );

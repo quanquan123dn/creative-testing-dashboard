@@ -12,7 +12,7 @@ interface CreativeTableProps {
   config: DecisionConfig;
 }
 
-type SortKey = 'ad_name' | 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'hold_rate' | 'installs' | 'impressions' | 'frequency';
+type SortKey = 'ad_name' | 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'installs' | 'impressions';
 type SortDir = 'asc' | 'desc';
 type FilterDecision = 'all' | 'winner' | 'watching' | 'kill' | 'new';
 
@@ -214,20 +214,14 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={thStyle('hook_rate')} onClick={() => handleSort('hook_rate')}>
                 Hook% <SortIcon column="hook_rate" sortKey={sortKey} sortDir={sortDir} />
               </th>
-              <th style={thStyle('hold_rate')} onClick={() => handleSort('hold_rate')}>
-                Hold% <SortIcon column="hold_rate" sortKey={sortKey} sortDir={sortDir} />
-              </th>
-              <th style={thStyle('frequency')} onClick={() => handleSort('frequency')}>
-                Freq <SortIcon column="frequency" sortKey={sortKey} sortDir={sortDir} />
-              </th>
-              <th style={{ minWidth: 120 }}>Decision</th>
+              <th style={{ minWidth: 120 }}>Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 14 }).map((_, j) => (
+                  {Array.from({ length: 11 }).map((_, j) => (
                     <td key={j}>
                       <div className="h-4 rounded shimmer" style={{ width: j === 0 ? 180 : 60 }} />
                     </td>
@@ -236,7 +230,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={14} className="text-center py-16" style={{ color: '#475569' }}>
+                <td colSpan={11} className="text-center py-16" style={{ color: '#475569' }}>
                   {ads.length === 0
                     ? 'No ad data found for this campaign and date range.'
                     : 'No ads match the current filters.'}
@@ -312,13 +306,6 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   <td style={{ color: '#94a3b8' }}>{ad.click_to_install > 0 ? `${ad.click_to_install.toFixed(1)}%` : '—'}</td>
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpm)}</td>
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpi)}</td>
-                  <td style={{ color: ad.hook_rate > 0 && ad.hook_rate < config.hook_rate_warning ? '#f59e0b' : '#94a3b8' }}>
-                    {fmt(ad.hook_rate, 1)}{ad.hook_rate > 0 ? '%' : ''}
-                  </td>
-                  <td style={{ color: '#94a3b8' }}>{fmt(ad.hold_rate, 1)}{ad.hold_rate > 0 ? '%' : ''}</td>
-                  <td style={{ color: ad.frequency > config.frequency_warning ? '#f59e0b' : '#94a3b8' }}>
-                    {fmt(ad.frequency, 1)}
-                  </td>
                   <td><DecisionBadge result={ad.decision_result} /></td>
                 </tr>
               ))

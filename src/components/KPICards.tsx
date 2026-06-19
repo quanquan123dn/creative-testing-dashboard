@@ -140,7 +140,7 @@ export default function KPICards({ ads, loading, config }: KPICardsProps) {
             </div>
           )}
           {!loading && card.sub && (
-            <div className="text-[11px] mt-1" style={{ color: '#475569' }}>
+            <div className="text-[11px] mt-1" style={{ color: '#94a3b8' }}>
               {card.sub}
             </div>
           )}
