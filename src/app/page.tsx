@@ -11,6 +11,7 @@ import Header from '@/components/Header';
 
 export interface EnrichedAd extends AdInsight {
   decision_result: ReturnType<typeof scoreCreative>;
+  layer2_status?: string;
 }
 
 export default function DashboardPage() {
@@ -27,14 +28,19 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const forceParam = force ? '&force=true' : '';
-      const res = await fetch(`/api/insights?date_preset=${datePreset}${forceParam}`);
+      const forceParamStr = force ? '&force=true' : '';
+      const [res, l2Res] = await Promise.all([
+        fetch(`/api/insights?date_preset=${datePreset}${forceParamStr}`),
+        fetch(`/api/layer2-meta-insights${force ? '?force=true' : ''}`)
+      ]);
       const json = await res.json();
+      const l2Json = await l2Res.json();
       if (!json.success) throw new Error(json.error);
 
-      const enriched: EnrichedAd[] = (json.data.ads || []).map((ad: AdInsight) => ({
-        ...ad,
-        decision_result: scoreCreative(
+      const l2Ads = l2Json.success ? (l2Json.data?.ads || []) : [];
+
+      const enriched: EnrichedAd[] = (json.data.ads || []).map((ad: AdInsight) => {
+        const decision_result = scoreCreative(
           {
             ipm: ad.ipm,
             spend: ad.spend,
@@ -45,8 +51,27 @@ export default function DashboardPage() {
             click_to_install: ad.click_to_install,
           },
           config
-        ),
-      }));
+        );
+
+        let layer2_status = 'Chưa đưa lên';
+        if (decision_result.decision === 'kill') {
+          layer2_status = 'Không test';
+        } else {
+          const l2Ad = l2Ads.find((a: any) => 
+            a.ad_name.replace(/^TSH\d+_/, '').toLowerCase().trim() === 
+            ad.ad_name.replace(/^TSH\d+_/, '').toLowerCase().trim()
+          );
+          if (l2Ad) {
+            layer2_status = l2Ad.adset_status === 'ACTIVE' ? 'Đang test' : 'Đã test';
+          }
+        }
+
+        return {
+          ...ad,
+          decision_result,
+          layer2_status
+        };
+      });
 
       setAds(enriched);
       setCampaignName(json.data.campaign?.name || null);

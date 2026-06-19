@@ -5,6 +5,7 @@ import { AppsFlyerAd } from '@/lib/appsflyer-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 
 interface EnrichedAd extends AppsFlyerAd {
+  has_af_data: boolean;
   decision_result: AppLovinDecisionResult;
 }
 
@@ -23,21 +24,65 @@ export default function Layer2VideoTab() {
     setError(null);
     try {
       const forceParam = force ? '?force=true' : '';
-      const res = await fetch(`/api/appsflyer-insights${forceParam}`);
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
+      
+      const [afRes, metaRes] = await Promise.all([
+        fetch(`/api/appsflyer-insights${forceParam}`),
+        fetch(`/api/layer2-meta-insights${forceParam}`)
+      ]);
+      
+      const afJson = await afRes.json();
+      const metaJson = await metaRes.json();
+      
+      if (!metaJson.success) throw new Error(metaJson.error || 'Failed to fetch Meta data');
+      if (!afJson.success) {
+        console.warn('AppsFlyer API failed:', afJson.error);
+      }
 
-      const enriched: EnrichedAd[] = (json.data.ads || []).map((ad: AppsFlyerAd) => ({
-        ...ad,
-        decision_result: scoreAppLovinCreative({
-          roas_3d: ad.roi > 0 ? ad.roi : 0, // Use lifetime ROI as ROAS proxy
-          buyer_rate: ad.buyer_rate,
-          spend: ad.cost,
-          installs: ad.installs,
-          cost: ad.cost,
-          sales_3d: ad.purchasers, // Use lifetime purchasers
-        }, config),
-      }));
+      const afAds: AppsFlyerAd[] = afJson.success ? (afJson.data?.ads || []) : [];
+      const metaAds = metaJson.data?.ads || [];
+
+      const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
+        const afAd = afAds.find(a => a.ad_name === metaAd.ad_name);
+        
+        const spend = metaAd.spend || 0;
+        const impressions = metaAd.impressions || 0;
+        const installs = metaAd.installs || 0;
+        const cpm = metaAd.cpm || 0;
+        const cpi = metaAd.cpi || 0;
+        const ctr = metaAd.ctr || 0;
+
+        const roi = afAd ? afAd.roi : 0;
+        const purchasers = afAd ? afAd.purchasers : 0;
+        const buyer_rate = afAd ? afAd.buyer_rate : 0;
+        const revenue = afAd ? afAd.revenue : 0;
+
+        return {
+          ad_name: metaAd.ad_name,
+          campaign: metaAd.campaign || 'Layer 2',
+          media_source: 'Facebook',
+          impressions,
+          clicks: metaAd.clicks || 0,
+          installs,
+          cost: spend,
+          revenue,
+          roi,
+          purchasers,
+          purchase_revenue: revenue,
+          ctr,
+          cpi,
+          cpm,
+          buyer_rate,
+          has_af_data: !!afAd,
+          decision_result: scoreAppLovinCreative({
+            roas_3d: roi,
+            buyer_rate: buyer_rate,
+            spend,
+            installs,
+            cost: spend,
+            sales_3d: purchasers,
+          }, config),
+        };
+      });
 
       setAds(enriched);
     } catch (err: unknown) {
@@ -271,15 +316,15 @@ export default function Layer2VideoTab() {
                             <div className="h-full rounded-full transition-all" style={{ width: `${maxROI > 0 ? Math.min((ad.roi / maxROI) * 100, 100) : 0}%`, background: getRoiColor(ad.roi) }} />
                           </div>
                           <span className="text-xs font-bold" style={{ color: getRoiColor(ad.roi), minWidth: '45px', textAlign: 'right' }}>
-                            {ad.roi.toFixed(1)}%
+                            {ad.has_af_data ? `${ad.roi.toFixed(1)}%` : 'N/A'}
                           </span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: ad.buyer_rate >= 5 ? '#10b981' : ad.buyer_rate >= 3 ? '#f59e0b' : '#94a3b8' }}>
-                        {ad.buyer_rate > 0 ? `${ad.buyer_rate.toFixed(1)}%` : '\u2014'}
+                        {ad.has_af_data ? (ad.buyer_rate > 0 ? `${ad.buyer_rate.toFixed(1)}%` : '\u2014') : 'N/A'}
                       </td>
-                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.purchasers > 0 ? ad.purchasers : '\u2014'}</td>
-                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.revenue)}</td>
+                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.purchasers > 0 ? ad.purchasers : '\u2014') : 'N/A'}</td>
+                      <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? formatCurrency(ad.revenue) : 'N/A'}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.ctr.toFixed(2)}%</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cpm)}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.installs > 0 ? formatCurrency(ad.cpi) : '\u2014'}</td>

@@ -5,6 +5,7 @@ export interface AdInsight {
   ad_id: string;
   ad_name: string;
   status: string;
+  adset_status: string;
   thumbnail_url: string;
   video_id: string | null;
   spend: number;
@@ -47,9 +48,9 @@ async function metaFetch(path: string, params: Record<string, string> = {}) {
   return res.json();
 }
 
-export async function findCampaign(): Promise<CampaignSummary | null> {
+export async function findCampaign(campaignNameOverride?: string): Promise<CampaignSummary | null> {
   const AD_ACCOUNT_ID = process.env.META_AD_ACCOUNT_ID!;
-  const CAMPAIGN_NAME = process.env.META_CAMPAIGN_NAME!;
+  const CAMPAIGN_NAME = campaignNameOverride || process.env.META_CAMPAIGN_NAME!;
 
   const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/campaigns`, {
     fields: 'id,name,status',
@@ -67,10 +68,11 @@ export async function getCampaignAds(campaignId: string): Promise<{
   id: string;
   name: string;
   status: string;
+  adset?: { status: string };
   creative: { thumbnail_url?: string; video_id?: string };
 }[]> {
   const data = await metaFetch(`/${campaignId}/ads`, {
-    fields: 'id,name,status,creative{thumbnail_url,video_id}',
+    fields: 'id,name,status,adset{status},creative{thumbnail_url,video_id}',
     limit: '200',
   });
   return data.data || [];
@@ -84,12 +86,12 @@ function extractAction(
   return found ? parseFloat(found.value) : 0;
 }
 
-export async function getAllAdInsights(datePreset: string = 'last_7d'): Promise<{
+export async function getAllAdInsights(datePreset: string = 'last_7d', campaignNameOverride?: string): Promise<{
   ads: AdInsight[];
   campaign: CampaignSummary | null;
   lastSync: string;
 }> {
-  const campaign = await findCampaign();
+  const campaign = await findCampaign(campaignNameOverride);
   if (!campaign) {
     return { ads: [], campaign: null, lastSync: new Date().toISOString() };
   }
@@ -157,6 +159,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d'): Promise<
       ad_id: adId,
       ad_name: (raw.ad_name as string) || adMeta?.name || adId,
       status: adMeta?.status || 'UNKNOWN',
+      adset_status: adMeta?.adset?.status || 'UNKNOWN',
       thumbnail_url: adMeta?.creative?.thumbnail_url || '',
       video_id: adMeta?.creative?.video_id || null,
       spend,
@@ -188,6 +191,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d'): Promise<
         ad_id: ad.id,
         ad_name: ad.name,
         status: ad.status,
+        adset_status: ad.adset?.status || 'UNKNOWN',
         thumbnail_url: ad.creative?.thumbnail_url || '',
         video_id: ad.creative?.video_id || null,
         spend: 0, impressions: 0, clicks: 0, installs: 0,

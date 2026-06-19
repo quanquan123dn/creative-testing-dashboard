@@ -214,14 +214,15 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={thStyle('hook_rate')} onClick={() => handleSort('hook_rate')}>
                 Hook% <SortIcon column="hook_rate" sortKey={sortKey} sortDir={sortDir} />
               </th>
-              <th style={{ minWidth: 120 }}>Status</th>
+              <th style={{ minWidth: 100 }}>L2 Status</th>
+              <th style={{ minWidth: 120 }}>L1 Decision</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 11 }).map((_, j) => (
+                  {Array.from({ length: 12 }).map((_, j) => (
                     <td key={j}>
                       <div className="h-4 rounded shimmer" style={{ width: j === 0 ? 180 : 60 }} />
                     </td>
@@ -230,7 +231,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={11} className="text-center py-16" style={{ color: '#475569' }}>
+                <td colSpan={12} className="text-center py-16" style={{ color: '#475569' }}>
                   {ads.length === 0
                     ? 'No ad data found for this campaign and date range.'
                     : 'No ads match the current filters.'}
@@ -308,6 +309,21 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpi)}</td>
                   <td style={{ color: ad.hook_rate > 0 && ad.hook_rate < config.hook_rate_warning ? '#f59e0b' : '#94a3b8' }}>
                     {fmt(ad.hook_rate, 1)}{ad.hook_rate > 0 ? '%' : ''}
+                  </td>
+                  <td>
+                    <span className="px-2 py-1 rounded text-[11px] font-medium" style={{ 
+                      background: ad.layer2_status === 'Đang test' ? 'rgba(59,130,246,0.15)' : 
+                                 ad.layer2_status === 'Đã test' ? 'rgba(16,185,129,0.15)' : 
+                                 ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)',
+                      color: ad.layer2_status === 'Đang test' ? '#60a5fa' : 
+                             ad.layer2_status === 'Đã test' ? '#34d399' : 
+                             ad.layer2_status === 'Không test' ? '#f87171' : '#94a3b8',
+                      border: `1px solid ${ad.layer2_status === 'Đang test' ? 'rgba(59,130,246,0.3)' : 
+                                           ad.layer2_status === 'Đã test' ? 'rgba(16,185,129,0.3)' : 
+                                           ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.3)' : 'rgba(100,116,139,0.3)'}`
+                    }}>
+                      {ad.layer2_status || 'Chưa đưa lên'}
+                    </span>
                   </td>
                   <td><DecisionBadge result={ad.decision_result} /></td>
                 </tr>
