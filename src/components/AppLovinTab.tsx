@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppLovinCreativeSet } from '@/lib/applovin-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
+import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Banknote, AlertCircle, XCircle, Clock } from 'lucide-react';
 
 interface EnrichedAppLovinAd extends AppLovinCreativeSet {
@@ -64,7 +65,9 @@ export default function AppLovinTab() {
       const aVal = (a as any)[sortKey];
       const bVal = (b as any)[sortKey];
       if (typeof aVal === 'string') {
-        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        const aCode = extractCreativeCode(aVal);
+        const bCode = extractCreativeCode(bVal as string);
+        return sortDir === 'asc' ? aCode.localeCompare(bCode) : bCode.localeCompare(aCode);
       }
       return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });

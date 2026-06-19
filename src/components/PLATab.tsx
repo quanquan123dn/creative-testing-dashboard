@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UnityCreativeStat } from '@/lib/unity-api';
 import { scorePLACreative, PLA_DEFAULT_CONFIG, PLADecisionConfig, PLADecisionResult, getPLAIPMBarColor } from '@/lib/pla-decision-engine';
 import LeaderboardSection from '@/components/LeaderboardSection';
+import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, Download, Trophy, Smartphone, Target } from 'lucide-react';
 
 interface EnrichedPLA extends UnityCreativeStat {
@@ -81,7 +82,9 @@ export default function PLATab() {
     const aVal = (a as any)[sortKey];
     const bVal = (b as any)[sortKey];
     if (typeof aVal === 'string') {
-      return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      const aCode = extractCreativeCode(aVal);
+      const bCode = extractCreativeCode(bVal as string);
+      return sortDir === 'asc' ? aCode.localeCompare(bCode) : bCode.localeCompare(aCode);
     }
     return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
   });

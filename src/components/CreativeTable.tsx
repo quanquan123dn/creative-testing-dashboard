@@ -5,6 +5,7 @@ import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
 import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle } from 'lucide-react';
 import Image from 'next/image';
+import { extractCreativeCode } from '@/lib/utils';
 
 interface CreativeTableProps {
   ads: EnrichedAd[];
@@ -93,7 +94,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [sortKey, setSortKey] = useState<SortKey>('ipm');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
-  const [filterStatus] = useState<string>('all');
+  const [filterL2Status, setFilterL2Status] = useState<string>('all');
 
   const maxIPM = useMemo(() => Math.max(...ads.map(a => a.ipm), config.ipm_winner * 1.5), [ads, config.ipm_winner]);
 
@@ -111,13 +112,16 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
     if (filterDecision !== 'all') {
       result = result.filter((a) => a.decision_result.decision === filterDecision);
     }
-    if (filterStatus !== 'all') {
-      result = result.filter((a) => a.status === filterStatus);
+    if (filterL2Status !== 'all') {
+      result = result.filter((a) => {
+        const l2 = a.layer2_status || 'Chưa test';
+        return l2 === filterL2Status;
+      });
     }
     result.sort((a, b) => {
       if (sortKey === 'ad_name') {
-        const aName = a.ad_name.toLowerCase();
-        const bName = b.ad_name.toLowerCase();
+        const aName = extractCreativeCode(a.ad_name);
+        const bName = extractCreativeCode(b.ad_name);
         return sortDir === 'desc' ? bName.localeCompare(aName) : aName.localeCompare(bName);
       }
       const aVal = (a as any)[sortKey] as number;
@@ -129,17 +133,27 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
 
   const filterCounts = useMemo(() => {
     const counts = { all: 0, winner: 0, watching: 0, kill: 0, new: 0 };
+    const l2Counts = { all: 0, 'Đang test': 0, 'Đã test': 0, 'Không test': 0, 'Chưa test': 0 };
+
     ads.forEach((ad) => {
-      if (filterStatus === 'all' || ad.status === filterStatus) {
+      // Layer 1
+      const l2Match = filterL2Status === 'all' || (ad.layer2_status || 'Chưa test') === filterL2Status;
+      if (l2Match) {
         counts.all++;
         const dec = ad.decision_result.decision as keyof typeof counts;
-        if (counts[dec] !== undefined) {
-          counts[dec]++;
-        }
+        if (counts[dec] !== undefined) counts[dec]++;
+      }
+
+      // Layer 2
+      const l1Match = filterDecision === 'all' || ad.decision_result.decision === filterDecision;
+      if (l1Match) {
+        l2Counts.all++;
+        const l2 = (ad.layer2_status || 'Chưa test') as keyof typeof l2Counts;
+        if (l2Counts[l2] !== undefined) l2Counts[l2]++;
       }
     });
-    return counts;
-  }, [ads, filterStatus]);
+    return { counts, l2Counts };
+  }, [ads, filterDecision, filterL2Status]);
 
   const thStyle = (key: SortKey) => ({
     cursor: 'pointer',
@@ -151,19 +165,19 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       {/* Filters */}
       <div className="px-5 py-3 flex items-center gap-3 flex-wrap" style={{ borderBottom: '1px solid #1e2d4a' }}>
         <span className="text-xs" style={{ color: '#64748b' }}>Filter:</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1" style={{ paddingRight: '1rem', borderRight: '1px solid #1e2d4a' }}>
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
             const labels: Record<FilterDecision, React.ReactNode> = {
-              all: `All (${filterCounts.all})`,
-              winner: <span className="flex items-center gap-1"><Trophy size={12} /> Pass ({filterCounts.winner})</span>,
-              watching: <span className="flex items-center gap-1"><Clock size={12} /> Iterate ({filterCounts.watching})</span>,
-              kill: <span className="flex items-center gap-1"><XCircle size={12} /> Fail ({filterCounts.kill})</span>,
-              new: <span className="flex items-center gap-1"><Circle size={12} fill="currentColor" /> New ({filterCounts.new})</span>
+              all: `All L1 (${filterCounts.counts.all})`,
+              winner: <span className="flex items-center gap-1"><Trophy size={12} /> Pass ({filterCounts.counts.winner})</span>,
+              watching: <span className="flex items-center gap-1"><Clock size={12} /> Iterate ({filterCounts.counts.watching})</span>,
+              kill: <span className="flex items-center gap-1"><XCircle size={12} /> Fail ({filterCounts.counts.kill})</span>,
+              new: <span className="flex items-center gap-1"><Circle size={12} fill="currentColor" /> New ({filterCounts.counts.new})</span>
             };
             const active = filterDecision === d;
             return (
               <button
-                key={d}
+                key={`l1-${d}`}
                 onClick={() => setFilterDecision(d)}
                 className="px-2.5 py-1 rounded text-xs font-medium transition-all"
                 style={{
@@ -171,7 +185,6 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   border: `1px solid ${active ? 'rgba(59,130,246,0.4)' : '#1e2d4a'}`,
                   color: active ? '#60a5fa' : '#64748b',
                 }}
-                id={`filter-decision-${d}`}
               >
                 {labels[d]}
               </button>
@@ -179,7 +192,32 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           })}
         </div>
 
-
+        <div className="flex gap-1">
+          {(['all', 'Đã test', 'Đang test', 'Không test', 'Chưa test']).map((d) => {
+            const labels: Record<string, React.ReactNode> = {
+              all: `All L2 (${filterCounts.l2Counts.all})`,
+              'Đã test': `Đã test (${filterCounts.l2Counts['Đã test']})`,
+              'Đang test': `Đang test (${filterCounts.l2Counts['Đang test']})`,
+              'Không test': `Không test (${filterCounts.l2Counts['Không test']})`,
+              'Chưa test': `Chưa test (${filterCounts.l2Counts['Chưa test']})`
+            };
+            const active = filterL2Status === d;
+            return (
+              <button
+                key={`l2-${d}`}
+                onClick={() => setFilterL2Status(d)}
+                className="px-2.5 py-1 rounded text-xs font-medium transition-all"
+                style={{
+                  background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                  border: `1px solid ${active ? 'rgba(139,92,246,0.4)' : '#1e2d4a'}`,
+                  color: active ? '#a78bfa' : '#64748b',
+                }}
+              >
+                {labels[d]}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Table */}
@@ -346,7 +384,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       {!loading && filtered.length > 0 && (
         <div className="px-5 py-3 text-xs" style={{ color: '#475569', borderTop: '1px solid #1e2d4a' }}>
           Showing {filtered.length} of {ads.length} creatives
-          {filterDecision !== 'all' || filterStatus !== 'all' ? ' (filtered)' : ''}
+          {filterDecision !== 'all' || filterL2Status !== 'all' ? ' (filtered)' : ''}
         </div>
       )}
     </div>

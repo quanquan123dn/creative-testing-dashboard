@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppsFlyerAd } from '@/lib/appsflyer-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
+import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Target } from 'lucide-react';
 
 interface EnrichedAd extends AppsFlyerAd {
@@ -115,7 +116,9 @@ export default function Layer2VideoTab() {
       const aVal = (a as any)[sortKey];
       const bVal = (b as any)[sortKey];
       if (typeof aVal === 'string') {
-        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        const aCode = extractCreativeCode(aVal);
+        const bCode = extractCreativeCode(bVal as string);
+        return sortDir === 'asc' ? aCode.localeCompare(bCode) : bCode.localeCompare(aCode);
       }
       return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
