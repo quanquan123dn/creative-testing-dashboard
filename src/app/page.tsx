@@ -53,7 +53,7 @@ export default function DashboardPage() {
           config
         );
 
-        let layer2_status = 'Chưa đưa lên';
+        let layer2_status = 'Chưa test';
         if (decision_result.decision === 'kill') {
           layer2_status = 'Không test';
         } else {

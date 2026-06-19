@@ -323,7 +323,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                                            ad.layer2_status === 'Đã test' ? 'rgba(16,185,129,0.3)' : 
                                            ad.layer2_status === 'Không test' ? 'rgba(239,68,68,0.3)' : 'rgba(100,116,139,0.3)'}`
                     }}>
-                      {ad.layer2_status || 'Chưa đưa lên'}
+                      {ad.layer2_status || 'Chưa test'}
                     </span>
                   </td>
                 </tr>
