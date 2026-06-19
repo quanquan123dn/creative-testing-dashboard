@@ -133,10 +133,13 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     nextUrl = page.paging?.next || null;
   }
 
-  // Map insight rows to AdInsight objects
-  const adsData: AdInsight[] = allInsightRows.map((raw) => {
+  // Map insight rows to AdInsight objects and aggregate by ad_name
+  const aggregatedAds: Record<string, AdInsight> = {};
+
+  allInsightRows.forEach((raw) => {
     const adId = raw.ad_id as string;
     const adMeta = adMap[adId];
+    const adName = (raw.ad_name as string) || adMeta?.name || adId;
 
     const actions = raw.actions as { action_type: string; value: string }[] | undefined;
     const videoPlayArr = raw.video_play_actions as { action_type: string; value: string }[] | undefined;
@@ -145,48 +148,55 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     const impressions = parseInt(raw.impressions as string || '0', 10);
     const clicks = parseInt(raw.clicks as string || '0', 10);
     const installs = extractAction(actions, 'mobile_app_install');
-    // Video 3s views from actions breakdown (video_view action)
     const v3s = extractAction(actions, 'video_view') || (videoPlayArr ? parseFloat(videoPlayArr[0]?.value || '0') : 0);
     const vThruplay = extractAction(actions, 'video_watches_at_100_pct') || 0;
+    const reach = parseInt(raw.reach as string || '0', 10);
 
-    const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
-    const cpi = installs > 0 ? spend / installs : 0;
-    const c2i = clicks > 0 ? (installs / clicks) * 100 : 0;
-    const hookRate = impressions > 0 ? (v3s / impressions) * 100 : 0;
-    const holdRate = v3s > 0 ? (vThruplay / v3s) * 100 : 0;
+    if (!aggregatedAds[adName]) {
+      aggregatedAds[adName] = {
+        ad_id: adId,
+        ad_name: adName,
+        status: adMeta?.status || 'UNKNOWN',
+        adset_status: adMeta?.adset?.status || 'UNKNOWN',
+        thumbnail_url: adMeta?.creative?.thumbnail_url || '',
+        video_id: adMeta?.creative?.video_id || null,
+        spend: 0, impressions: 0, clicks: 0, installs: 0,
+        ctr: 0, cpm: 0, cpc: 0, cpi: 0, ipm: 0,
+        click_to_install: 0, hook_rate: 0, hold_rate: 0,
+        frequency: 0, reach: 0, video_3s_views: 0, video_thruplay: 0,
+        date_start: raw.date_start as string || '',
+        date_stop: raw.date_stop as string || '',
+      };
+    }
 
-    return {
-      ad_id: adId,
-      ad_name: (raw.ad_name as string) || adMeta?.name || adId,
-      status: adMeta?.status || 'UNKNOWN',
-      adset_status: adMeta?.adset?.status || 'UNKNOWN',
-      thumbnail_url: adMeta?.creative?.thumbnail_url || '',
-      video_id: adMeta?.creative?.video_id || null,
-      spend,
-      impressions,
-      clicks,
-      installs,
-      ctr: parseFloat(raw.ctr as string || '0'),
-      cpm: parseFloat(raw.cpm as string || '0'),
-      cpc: parseFloat(raw.cpc as string || '0'),
-      cpi,
-      ipm,
-      click_to_install: c2i,
-      hook_rate: hookRate,
-      hold_rate: holdRate,
-      frequency: parseFloat(raw.frequency as string || '0'),
-      reach: parseInt(raw.reach as string || '0', 10),
-      video_3s_views: v3s,
-      video_thruplay: vThruplay,
-      date_start: raw.date_start as string || '',
-      date_stop: raw.date_stop as string || '',
-    } as AdInsight;
+    const agg = aggregatedAds[adName];
+    agg.spend += spend;
+    agg.impressions += impressions;
+    agg.clicks += clicks;
+    agg.installs += installs;
+    agg.reach += reach;
+    agg.video_3s_views += v3s;
+    agg.video_thruplay += vThruplay;
+  });
+
+  const adsData: AdInsight[] = Object.values(aggregatedAds).map(agg => {
+    agg.ipm = agg.impressions > 0 ? (agg.installs / agg.impressions) * 1000 : 0;
+    agg.cpi = agg.installs > 0 ? agg.spend / agg.installs : 0;
+    agg.cpc = agg.clicks > 0 ? agg.spend / agg.clicks : 0;
+    agg.cpm = agg.impressions > 0 ? (agg.spend / agg.impressions) * 1000 : 0;
+    agg.ctr = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0;
+    agg.click_to_install = agg.clicks > 0 ? (agg.installs / agg.clicks) * 100 : 0;
+    agg.hook_rate = agg.impressions > 0 ? (agg.video_3s_views / agg.impressions) * 100 : 0;
+    agg.hold_rate = agg.video_3s_views > 0 ? (agg.video_thruplay / agg.video_3s_views) * 100 : 0;
+    agg.frequency = agg.reach > 0 ? agg.impressions / agg.reach : 0;
+    return agg;
   });
 
   // Also include ads with NO spend data (so they show as "New" in table)
-  const adsWithInsight = new Set(adsData.map(a => a.ad_id));
+  const adsWithInsight = new Set(adsData.map(a => a.ad_name));
   adsMetadata.forEach(ad => {
-    if (!adsWithInsight.has(ad.id)) {
+    if (!adsWithInsight.has(ad.name)) {
+      adsWithInsight.add(ad.name);
       adsData.push({
         ad_id: ad.id,
         ad_name: ad.name,
