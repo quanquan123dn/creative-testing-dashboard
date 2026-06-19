@@ -1,6 +1,7 @@
 'use client';
 
-import { RefreshCw, Zap, Activity } from 'lucide-react';
+import { RefreshCw, Activity } from 'lucide-react';
+import Image from 'next/image';
 
 interface HeaderProps {
   campaignName: string | null;
@@ -41,17 +42,15 @@ export default function Header({
           {/* Left: Logo + Campaign */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
-              }}>
-                <Zap size={16} className="text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-black/40">
+                <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-cover w-full h-full" />
               </div>
               <div>
                 <h1 className="text-sm font-bold gradient-text leading-none">
                   Creative Testing
                 </h1>
                 <p className="text-[10px] mt-0.5" style={{ color: '#64748b' }}>
-                  Meta Ads Dashboard
+                  Dashboard
                 </p>
               </div>
             </div>
