@@ -151,7 +151,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
             const labels: Record<FilterDecision, string> = {
               all: `All (${filterCounts.all})`,
-              winner: `🏆 Đạt (${filterCounts.winner})`,
+              winner: `🏆 Pass (${filterCounts.winner})`,
               watching: `⏳ Iterate (${filterCounts.watching})`,
               kill: `❌ Fail (${filterCounts.kill})`,
               new: `🔵 New (${filterCounts.new})`

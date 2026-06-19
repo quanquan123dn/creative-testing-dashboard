@@ -91,7 +91,7 @@ export function scoreCreative(
   if (ipm >= config.ipm_winner) {
     return {
       decision: 'winner',
-      label: 'Đạt',
+      label: 'Pass',
       emoji: '🏆',
       colorClass: 'text-emerald-400',
       bgClass: 'bg-emerald-500/10',

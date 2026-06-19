@@ -409,7 +409,7 @@ export default function PLATab() {
             <div className="flex gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#10b981' }} />
-                <span style={{ color: '#94a3b8' }}>Đạt ({winners})</span>
+                <span style={{ color: '#94a3b8' }}>Pass ({winners})</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded" style={{ background: '#f59e0b' }} />
