@@ -13,7 +13,7 @@ interface CreativeTableProps {
   config: DecisionConfig;
 }
 
-type SortKey = 'ad_name' | 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'installs' | 'impressions';
+type SortKey = 'ad_name' | 'spend' | 'ipm' | 'ctr' | 'cpm' | 'cpi' | 'click_to_install' | 'hook_rate' | 'installs' | 'impressions' | 'created_time';
 type SortDir = 'asc' | 'desc';
 type FilterDecision = 'all' | 'winner' | 'watching' | 'kill' | 'new';
 
@@ -123,6 +123,11 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         const aName = extractCreativeCode(a.ad_name);
         const bName = extractCreativeCode(b.ad_name);
         return sortDir === 'desc' ? bName.localeCompare(aName) : aName.localeCompare(bName);
+      }
+      if (sortKey === 'created_time') {
+        const aTime = a.created_time ? new Date(a.created_time).getTime() : 0;
+        const bTime = b.created_time ? new Date(b.created_time).getTime() : 0;
+        return sortDir === 'desc' ? bTime - aTime : aTime - bTime;
       }
       const aVal = (a as any)[sortKey] as number;
       const bVal = (b as any)[sortKey] as number;
@@ -256,6 +261,9 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={thStyle('hook_rate')} onClick={() => handleSort('hook_rate')}>
                 Hook% <SortIcon column="hook_rate" sortKey={sortKey} sortDir={sortDir} />
               </th>
+              <th style={thStyle('created_time')} onClick={() => handleSort('created_time')}>
+                Test Date <SortIcon column="created_time" sortKey={sortKey} sortDir={sortDir} />
+              </th>
               <th style={{ minWidth: 120 }}>L1 Status</th>
               <th style={{ minWidth: 100 }}>L2 Status</th>
             </tr>
@@ -264,7 +272,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 12 }).map((_, j) => (
+                  {Array.from({ length: 13 }).map((_, j) => (
                     <td key={j}>
                       <div className="h-4 rounded shimmer" style={{ width: j === 0 ? 180 : 60 }} />
                     </td>
@@ -273,7 +281,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={12} className="text-center py-16" style={{ color: '#475569' }}>
+                <td colSpan={13} className="text-center py-16" style={{ color: '#475569' }}>
                   {ads.length === 0
                     ? 'No ad data found for this campaign and date range.'
                     : 'No ads match the current filters.'}
@@ -351,6 +359,9 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   <td style={{ color: '#94a3b8' }}>{fmtCurr(ad.cpi)}</td>
                   <td style={{ color: ad.hook_rate > 0 && ad.hook_rate < config.hook_rate_warning ? '#f59e0b' : '#94a3b8' }}>
                     {fmt(ad.hook_rate, 1)}{ad.hook_rate > 0 ? '%' : ''}
+                  </td>
+                  <td style={{ color: '#94a3b8', fontSize: '12px' }}>
+                    {ad.created_time ? new Date(ad.created_time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
                   </td>
                   <td><DecisionBadge result={ad.decision_result} /></td>
                   <td>

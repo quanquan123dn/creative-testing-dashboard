@@ -26,6 +26,7 @@ export interface AdInsight {
   video_thruplay: number;
   date_start: string;
   date_stop: string;
+  created_time: string;
 }
 
 export interface CampaignSummary {
@@ -68,11 +69,12 @@ export async function getCampaignAds(campaignId: string): Promise<{
   id: string;
   name: string;
   status: string;
+  created_time?: string;
   adset?: { status: string };
   creative: { thumbnail_url?: string; video_id?: string };
 }[]> {
   const data = await metaFetch(`/${campaignId}/ads`, {
-    fields: 'id,name,status,adset{status},creative{thumbnail_url,video_id}',
+    fields: 'id,name,status,created_time,adset{status},creative{thumbnail_url,video_id}',
     limit: '200',
   });
   return data.data || [];
@@ -160,6 +162,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
         adset_status: adMeta?.adset?.status || 'UNKNOWN',
         thumbnail_url: adMeta?.creative?.thumbnail_url || '',
         video_id: adMeta?.creative?.video_id || null,
+        created_time: adMeta?.created_time || '',
         spend: 0, impressions: 0, clicks: 0, installs: 0,
         ctr: 0, cpm: 0, cpc: 0, cpi: 0, ipm: 0,
         click_to_install: 0, hook_rate: 0, hold_rate: 0,
@@ -204,6 +207,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
         adset_status: ad.adset?.status || 'UNKNOWN',
         thumbnail_url: ad.creative?.thumbnail_url || '',
         video_id: ad.creative?.video_id || null,
+        created_time: ad.created_time || '',
         spend: 0, impressions: 0, clicks: 0, installs: 0,
         ctr: 0, cpm: 0, cpc: 0, cpi: 0, ipm: 0,
         click_to_install: 0, hook_rate: 0, hold_rate: 0,
