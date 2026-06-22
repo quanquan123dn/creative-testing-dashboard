@@ -47,11 +47,9 @@ export default function Layer2VideoTab() {
       const metaAds = (metaJson.data?.ads || []).filter((metaAd: any) => metaAd.spend >= 0.01);
 
       console.log(`[L2V] Meta ads: ${metaAds.length}, AF ads: ${afAds.length}`);
-      if (afAds.length > 0) {
-        console.log('[L2V] AF ad names sample:', afAds.slice(0, 5).map((a: AppsFlyerAd) => a.ad_name));
-      }
+      console.log('[L2V] AF ALL ad names:', afAds.map((a: AppsFlyerAd) => `"${a.ad_name}" (campaign: ${a.campaign})`).join(', '));
       if (metaAds.length > 0) {
-        console.log('[L2V] Meta ad names sample:', metaAds.slice(0, 5).map((a: any) => a.ad_name));
+        console.log('[L2V] Meta ad names sample:', metaAds.slice(0, 5).map((a: any) => a.ad_name).join(', '));
       }
 
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
