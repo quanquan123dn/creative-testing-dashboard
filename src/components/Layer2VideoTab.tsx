@@ -46,8 +46,19 @@ export default function Layer2VideoTab() {
       const afAds: AppsFlyerAd[] = afJson.success ? (afJson.data?.ads || []) : [];
       const metaAds = (metaJson.data?.ads || []).filter((metaAd: any) => metaAd.spend >= 0.01);
 
+      console.log(`[L2V] Meta ads: ${metaAds.length}, AF ads: ${afAds.length}`);
+      if (afAds.length > 0) {
+        console.log('[L2V] AF ad names sample:', afAds.slice(0, 5).map((a: AppsFlyerAd) => a.ad_name));
+      }
+      if (metaAds.length > 0) {
+        console.log('[L2V] Meta ad names sample:', metaAds.slice(0, 5).map((a: any) => a.ad_name));
+      }
+
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
-        const afAd = afAds.find(a => a.ad_name === metaAd.ad_name);
+        // Try exact match first, then fuzzy match by creative code
+        const metaCode = extractCreativeCode(metaAd.ad_name);
+        const afAd = afAds.find(a => a.ad_name === metaAd.ad_name)
+          || afAds.find(a => extractCreativeCode(a.ad_name) === metaCode);
         
         const spend = metaAd.spend || 0;
         const impressions = metaAd.impressions || 0;
@@ -56,11 +67,11 @@ export default function Layer2VideoTab() {
         const cpi = metaAd.cpi || 0;
         const ctr = metaAd.ctr || 0;
 
-        const roi = afAd ? afAd.roi : 0;
         const purchasers = afAd ? afAd.purchasers : 0;
         const buyer_rate = afAd ? afAd.buyer_rate : 0;
         const buyer_rate_d3 = afAd ? afAd.buyer_rate_d3 : 0;
         const revenue = afAd ? afAd.revenue : 0;
+        const roas_d3 = spend > 0 && revenue > 0 ? (revenue / spend) * 100 : 0;
         const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
         const cpa = purchasers > 0 ? spend / purchasers : 0;
 
@@ -73,7 +84,7 @@ export default function Layer2VideoTab() {
           installs,
           cost: spend,
           revenue,
-          roi,
+          roi: roas_d3,
           purchasers,
           purchase_revenue: revenue,
           ctr,
@@ -85,7 +96,7 @@ export default function Layer2VideoTab() {
           buyer_rate_d3,
           has_af_data: !!afAd,
           decision_result: scoreAppLovinCreative({
-            roas_3d: roi,
+            roas_3d: roas_d3,
             buyer_rate: buyer_rate_d3,
             spend,
             installs,
@@ -153,7 +164,7 @@ export default function Layer2VideoTab() {
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '70px' },
     { key: 'ipm', label: 'IPM', align: 'right', width: '70px' },
-    { key: 'roi', label: 'ROI', align: 'right', width: '90px' },
+    { key: 'roi', label: 'ROAS D3', align: 'right', width: '90px' },
     { key: 'buyer_rate_d3', label: 'Buyer D3', align: 'right', width: '85px' },
     { key: 'purchasers', label: 'Purchasers', align: 'right', width: '80px' },
     { key: 'cpa', label: 'CPA', align: 'right', width: '80px' },
@@ -171,7 +182,7 @@ export default function Layer2VideoTab() {
 
   const kpiCards = [
     { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
-    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'Overall ROI', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
+    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
     { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate D3', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
     { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
     { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
