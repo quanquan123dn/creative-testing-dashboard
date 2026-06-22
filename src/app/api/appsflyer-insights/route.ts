@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAppsFlyerCreativeStats } from '@/lib/appsflyer-api';
 import { unstable_cache, revalidateTag } from 'next/cache';
 
-const CACHE_DURATION = 1800; // 30 minutes
+const CACHE_DURATION = 21600; // 6 hours
 
 function getCachedAppsFlyerStats() {
   return unstable_cache(
