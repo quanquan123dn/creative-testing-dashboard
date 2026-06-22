@@ -1,6 +1,9 @@
-const APPSFLYER_TOKEN = process.env.APPSFLYER_TOKEN || '';
-const APP_ID = 'com.fansipan.epic.stickman.survival.rpg.idle.game';
-const CAMPAIGN_FILTER = 'Layer 2 creative test';
+/**
+ * AppsFlyer data reader — reads from published Google Sheet (CSV)
+ * instead of calling AppsFlyer API directly.
+ */
+
+const GOOGLE_SHEET_CSV_URL = process.env.GOOGLE_SHEET_CSV_URL || '';
 
 export interface AppsFlyerAd {
   ad_name: string;
@@ -11,22 +14,22 @@ export interface AppsFlyerAd {
   installs: number;
   cost: number;
   revenue: number;
-  roi: number;  // Total Revenue / Total Cost (lifetime)
-  buyer_rate_d3: number; // Buyer Rate at Day 3 cohort (purchasers_d3 / installs * 100)
-  purchasers: number; // af_purchase unique users
-  purchase_revenue: number; // af_purchase sales in USD
-  // Computed
+  roi: number;
+  roas_d3: number;
+  buyer_rate_d3: number;
+  purchasers: number;
+  purchasers_d3: number;
+  purchase_revenue: number;
   ctr: number;
   cpi: number;
   cpm: number;
-  buyer_rate: number; // purchasers / installs * 100 (lifetime)
+  buyer_rate: number;
 }
 
 function parseCSV(csv: string): Record<string, string>[] {
   const lines = csv.split('\n').filter(l => l.trim());
   if (lines.length < 2) return [];
   
-  // Parse header - handle quoted fields
   const parseRow = (line: string): string[] => {
     const result: string[] = [];
     let current = '';
@@ -61,160 +64,65 @@ function parseCSV(csv: string): Record<string, string>[] {
   return rows;
 }
 
-// Fetch D3 cohort buyer data from AppsFlyer Cohort API
-async function getAppsFlyerCohortD3(): Promise<Record<string, { buyer_rate_d3: number }>> {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 100);
-  
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
-  
-  const params = new URLSearchParams({
-    from: startStr,
-    to: endStr,
-    groupings: 'pid,c,af_ad',
-    kpis: 'af_purchase_unique_users,users',
-    cohort_type: 'user_acquisition',
-    cohort_day: '3',
-    min_cohort_size: '1',
-    per_day: 'false',
+export async function getAppsFlyerCreativeStats(): Promise<{ campaign: string; ads: AppsFlyerAd[] }> {
+  if (!GOOGLE_SHEET_CSV_URL) {
+    console.warn('GOOGLE_SHEET_CSV_URL not configured, returning empty data');
+    return { campaign: 'Layer 2 creative test', ads: [] };
+  }
+
+  const res = await fetch(GOOGLE_SHEET_CSV_URL, {
+    next: { revalidate: 0 },
   });
   
-  const url = `https://hq1.appsflyer.com/api/cohorts/v1/data/app/${APP_ID}?${params.toString()}`;
-  
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${APPSFLYER_TOKEN}`,
-        'accept': 'application/json',
-      },
-      next: { revalidate: 0 },
-    });
-    
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn(`AppsFlyer Cohort API error: ${res.status} - ${errText}`);
-      return {};
-    }
-    
-    const json = await res.json();
-    console.log('AppsFlyer Cohort D3 raw response keys:', JSON.stringify(Object.keys(json)));
-    
-    const result: Record<string, { buyer_rate_d3: number }> = {};
-    
-    // Try multiple response formats
-    const rows = json.data?.results || json.data || json.results || json || [];
-    if (Array.isArray(rows)) {
-      rows.forEach((row: any) => {
-        const adName = row.dimensions?.af_ad || row.af_ad || row['Ad (af_ad)'] || '';
-        const campaign = row.dimensions?.c || row.c || row['Campaign (c)'] || '';
-        if (!campaign.includes(CAMPAIGN_FILTER) || !adName) return;
-        
-        // Try to extract purchasers D3 and users D3
-        const purchasersD3 = row.kpis?.af_purchase_unique_users?.day_3 
-          ?? row.af_purchase_unique_users_day_3 
-          ?? row.af_purchase_unique_users 
-          ?? 0;
-        const usersD3 = row.kpis?.users?.day_3 
-          ?? row.users_day_3 
-          ?? row.users 
-          ?? 0;
-        
-        const buyerRateD3 = usersD3 > 0 ? (purchasersD3 / usersD3) * 100 : 0;
-        result[adName] = { buyer_rate_d3: buyerRateD3 };
-      });
-    }
-    
-    console.log(`AppsFlyer Cohort D3: parsed ${Object.keys(result).length} ads`);
-    return result;
-  } catch (err) {
-    console.warn('AppsFlyer Cohort D3 fetch failed:', err);
-    return {};
-  }
-}
-
-export async function getAppsFlyerCreativeStats(): Promise<{ campaign: string; ads: AppsFlyerAd[] }> {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 100); // 100 days to capture campaigns from March
-  
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
-  
-  const url = `https://hq1.appsflyer.com/api/agg-data/export/app/${APP_ID}/partners_report/v5?from=${startStr}&to=${endStr}&groupings=pid,c,af_ad`;
-  
-  // Fetch both aggregate and cohort D3 data in parallel
-  const [aggRes, cohortD3] = await Promise.all([
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${APPSFLYER_TOKEN}`,
-        'accept': 'text/csv',
-      },
-      next: { revalidate: 0 },
-    }),
-    getAppsFlyerCohortD3(),
-  ]);
-  
-  if (!aggRes.ok) {
-    const text = await aggRes.text();
-    throw new Error(`AppsFlyer API error: ${aggRes.status} - ${text}`);
+  if (!res.ok) {
+    throw new Error(`Google Sheet fetch error: ${res.status}`);
   }
   
-  const csv = await aggRes.text();
+  const csv = await res.text();
   const rows = parseCSV(csv);
   
-  // Filter for target campaign
-  const campaignRows = rows.filter(r => {
-    const campaign = r['Campaign (c)'] || r['Campaign'] || '';
-    return campaign.includes(CAMPAIGN_FILTER);
-  });
+  if (rows.length === 0) {
+    return { campaign: 'Layer 2 creative test', ads: [] };
+  }
   
-  const campaignName = campaignRows.length > 0 
-    ? (campaignRows[0]['Campaign (c)'] || campaignRows[0]['Campaign'] || CAMPAIGN_FILTER)
-    : CAMPAIGN_FILTER;
+  const campaignName = rows[0]['campaign'] || 'Layer 2 creative test';
   
-  const ads: AppsFlyerAd[] = campaignRows.map(row => {
-    const impressions = parseFloat(row['Impressions'] || '0');
-    const clicks = parseFloat(row['Clicks'] || '0');
-    const installs = parseFloat(row['Installs'] || '0');
-    const cost = parseFloat(row['Total Cost'] || '0');
-    const revenue = parseFloat(row['Total Revenue'] || '0');
-    const roiStr = row['ROI'] || '0';
-    const roi = parseFloat(roiStr.replace('%', '')) || 0;
-    const purchasers = parseFloat(row['af_purchase (Unique users)'] || '0');
-    const purchaseRevenue = parseFloat(row['af_purchase (Sales in USD)'] || '0');
+  const ads: AppsFlyerAd[] = rows.map(row => {
+    const installs = parseFloat(row['installs'] || '0');
+    const cost = parseFloat(row['cost']?.replace(/[$,]/g, '') || '0');
+    const revenue = parseFloat(row['revenue']?.replace(/[$,]/g, '') || '0');
+    const roi = parseFloat(row['roi']?.replace(/[%"]/g, '') || '0');
+    const purchasers = parseFloat(row['purchasers'] || '0');
+    const purchasersD3 = parseFloat(row['purchasers_d3'] || '0');
+    const roasD3 = parseFloat(row['roas_d3']?.replace(/[%"]/g, '') || '0');
+    const buyerRateD3 = parseFloat(row['buyer_rate_d3']?.replace(/[%"]/g, '') || '0');
     
-    const adName = row['Ad (af_ad)'] || row['af_ad'] || 'Unknown';
-    const d3Data = cohortD3[adName];
-    
-    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const ctr = 0; // Not tracked in AppsFlyer sheet
     const cpi = installs > 0 ? cost / installs : 0;
-    const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0;
-    const buyer_rate = installs > 0 ? (purchasers / installs) * 100 : 0;
-    
-    // Use D3 buyer rate from cohort API, fallback to lifetime buyer rate
-    const buyer_rate_d3 = d3Data?.buyer_rate_d3 ?? buyer_rate;
+    const cpm = 0; // Not tracked
+    const buyerRate = installs > 0 ? (purchasers / installs) * 100 : 0;
     
     return {
-      ad_name: adName,
-      campaign: row['Campaign (c)'] || row['Campaign'] || '',
-      media_source: row['Media Source (pid)'] || row['pid'] || '',
-      impressions,
-      clicks,
+      ad_name: row['ad_name'] || 'Unknown',
+      campaign: row['campaign'] || '',
+      media_source: row['media_source'] || '',
+      impressions: 0, // Not tracked in AF sheet
+      clicks: 0,
       installs,
       cost,
       revenue,
       roi,
-      buyer_rate_d3,
+      roas_d3: roasD3,
+      buyer_rate_d3: buyerRateD3,
       purchasers,
-      purchase_revenue: purchaseRevenue,
+      purchasers_d3: purchasersD3,
+      purchase_revenue: revenue,
       ctr,
       cpi,
       cpm,
-      buyer_rate,
+      buyer_rate: buyerRate,
     };
-  }).filter(ad => ad.installs > 0 || ad.impressions > 0);
+  }).filter(ad => ad.installs > 0 || ad.cost > 0);
   
   return { campaign: campaignName, ads };
 }

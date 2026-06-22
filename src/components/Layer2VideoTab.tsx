@@ -1,28 +1,53 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AppsFlyerAd } from '@/lib/appsflyer-api';
-import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { scoreAppLovinCreative, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 import { extractCreativeCode } from '@/lib/utils';
-import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCircle } from 'lucide-react';
 
-interface EnrichedAd extends AppsFlyerAd {
-  has_af_data: boolean;
-  decision_result: AppLovinDecisionResult;
+interface EnrichedAd {
+  ad_name: string;
+  campaign: string;
+  media_source: string;
+  impressions: number;
+  clicks: number;
+  installs: number;
+  cost: number;
+  revenue: number;
+  roi: number;
+  purchasers: number;
+  purchase_revenue: number;
+  ctr: number;
+  cpi: number;
+  cpm: number;
   ipm: number;
   cpa: number;
+  buyer_rate: number;
   buyer_rate_d3: number;
+  roas_d3: number;
+  has_af_data: boolean;
+  decision_result: AppLovinDecisionResult;
 }
 
-type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
+type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'roas_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
+
+interface AFUploadRow {
+  adset_name: string;
+  roas_d3: number;
+  buyer_rate_d3: number;
+  [key: string]: string | number;
+}
 
 export default function Layer2VideoTab() {
   const [ads, setAds] = useState<EnrichedAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>('roi');
+  const [sortKey, setSortKey] = useState<SortKey>('cost');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [config] = useState<AppLovinDecisionConfig>(FB_LAYER2_DEFAULT_CONFIG);
+  const [uploading, setUploading] = useState(false);
+  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async (force = false) => {
     setLoading(true);
@@ -30,55 +55,38 @@ export default function Layer2VideoTab() {
     try {
       const forceParam = force ? '?force=true' : '';
       
-      const [afRes, metaRes] = await Promise.all([
-        fetch(`/api/appsflyer-insights${forceParam}`),
-        fetch(`/api/layer2-meta-insights${forceParam}`)
+      // Fetch Meta data + uploaded AppsFlyer CSV data in parallel
+      const [metaRes, afUploadRes] = await Promise.all([
+        fetch(`/api/layer2-meta-insights${forceParam}`),
+        fetch('/api/appsflyer-upload'),
       ]);
       
-      const afJson = await afRes.json();
       const metaJson = await metaRes.json();
+      const afUploadJson = await afUploadRes.json();
       
       if (!metaJson.success) throw new Error(metaJson.error || 'Failed to fetch Meta data');
-      if (!afJson.success) {
-        console.warn('AppsFlyer API failed:', afJson.error);
-      }
 
-      const afAds: AppsFlyerAd[] = afJson.success ? (afJson.data?.ads || []) : [];
       const metaAds = (metaJson.data?.ads || []).filter((metaAd: any) => metaAd.spend >= 0.01);
-
-      console.log(`[L2V] Meta ads: ${metaAds.length}, AF ads: ${afAds.length}`);
-      console.log('[L2V] AF ALL ad names:', afAds.map((a: AppsFlyerAd) => `"${a.ad_name}" (campaign: ${a.campaign})`).join(', '));
-      if (metaAds.length > 0) {
-        console.log('[L2V] Meta ad names sample:', metaAds.slice(0, 5).map((a: any) => a.ad_name).join(', '));
+      
+      // Get uploaded AppsFlyer data (from CSV)
+      const afRows: AFUploadRow[] = afUploadJson.data?.rows || [];
+      
+      if (afRows.length > 0) {
+        setUploadInfo(`📊 AppsFlyer: ${afRows.length} adsets (updated ${new Date(afUploadJson.data.uploaded_at).toLocaleString('vi-VN')})`);
+      } else {
+        setUploadInfo(null);
       }
 
-      // Campaign-level fallback: if AF has no per-ad data (only "Unknown"),
-      // use campaign totals to compute ROAS and buyer rate for all ads
-      const campaignAF = afAds.length > 0 ? afAds.reduce((acc, a) => ({
-        revenue: acc.revenue + a.revenue,
-        cost: acc.cost + a.cost,
-        purchasers: acc.purchasers + a.purchasers,
-        installs: acc.installs + a.installs,
-        buyer_rate: a.buyer_rate,
-        buyer_rate_d3: a.buyer_rate_d3,
-        roi: a.roi,
-      }), { revenue: 0, cost: 0, purchasers: 0, installs: 0, buyer_rate: 0, buyer_rate_d3: 0, roi: 0 }) : null;
-      
-      const campaignROAS = campaignAF && campaignAF.cost > 0 
-        ? (campaignAF.revenue / campaignAF.cost) * 100 : 0;
-      const campaignBuyerRate = campaignAF 
-        ? campaignAF.buyer_rate : 0;
-      const campaignBuyerRateD3 = campaignAF 
-        ? campaignAF.buyer_rate_d3 : 0;
-      const totalMetaInstalls = metaAds.reduce((s: number, a: any) => s + (a.installs || 0), 0);
-
-      console.log(`[L2V] Campaign AF: revenue=$${campaignAF?.revenue?.toFixed(2)}, cost=$${campaignAF?.cost?.toFixed(2)}, purchasers=${campaignAF?.purchasers}, ROAS=${campaignROAS.toFixed(1)}%, buyerRate=${campaignBuyerRate.toFixed(1)}%`);
+      console.log(`[L2V] Meta ads: ${metaAds.length}, AF uploaded rows: ${afRows.length}`);
 
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
-        // Try exact match first, then fuzzy match by creative code
         const metaCode = extractCreativeCode(metaAd.ad_name);
-        const afAd = afAds.find(a => a.ad_name === metaAd.ad_name)
-          || afAds.find(a => a.ad_name !== 'Unknown' && extractCreativeCode(a.ad_name) === metaCode);
+        
+        // Match by creative code in adset_name
+        const afMatch = afRows.find(r => {
+          const afCode = extractCreativeCode(r.adset_name);
+          return afCode === metaCode;
+        });
         
         const spend = metaAd.spend || 0;
         const impressions = metaAd.impressions || 0;
@@ -86,35 +94,10 @@ export default function Layer2VideoTab() {
         const cpm = metaAd.cpm || 0;
         const cpi = metaAd.cpi || 0;
         const ctr = metaAd.ctr || 0;
-
-        // If individual ad match found, use it. Otherwise, use campaign-level data
-        const hasDirectMatch = !!afAd && afAd.ad_name !== 'Unknown';
-        const hasCampaignData = !!campaignAF && campaignAF.revenue > 0;
-        
-        let purchasers = 0;
-        let buyer_rate = 0;
-        let buyer_rate_d3 = 0;
-        let revenue = 0;
-
-        if (hasDirectMatch && afAd) {
-          // Direct per-ad match
-          purchasers = afAd.purchasers;
-          buyer_rate = afAd.buyer_rate;
-          buyer_rate_d3 = afAd.buyer_rate_d3;
-          revenue = afAd.revenue;
-        } else if (hasCampaignData && campaignAF) {
-          // Campaign-level: proportional split by install share
-          const installShare = totalMetaInstalls > 0 ? installs / totalMetaInstalls : 0;
-          purchasers = Math.round(campaignAF.purchasers * installShare);
-          revenue = campaignAF.revenue * installShare;
-          // Buyer rate and ROAS are campaign-level (same for all ads)
-          buyer_rate = campaignBuyerRate;
-          buyer_rate_d3 = campaignBuyerRateD3;
-        }
-
-        const roas_d3 = campaignROAS; // Campaign-level ROAS applies to all
         const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
-        const cpa = purchasers > 0 ? spend / purchasers : 0;
+
+        const roas_d3 = afMatch ? afMatch.roas_d3 : 0;
+        const buyer_rate_d3 = afMatch ? afMatch.buyer_rate_d3 : 0;
 
         return {
           ad_name: metaAd.ad_name,
@@ -124,25 +107,26 @@ export default function Layer2VideoTab() {
           clicks: metaAd.clicks || 0,
           installs,
           cost: spend,
-          revenue,
+          revenue: 0,
           roi: roas_d3,
-          purchasers,
-          purchase_revenue: revenue,
+          purchasers: 0,
+          purchase_revenue: 0,
           ctr,
           cpi,
           cpm,
           ipm,
-          cpa,
-          buyer_rate,
+          cpa: 0,
+          buyer_rate: buyer_rate_d3,
           buyer_rate_d3,
-          has_af_data: hasDirectMatch || hasCampaignData,
+          roas_d3,
+          has_af_data: !!afMatch,
           decision_result: scoreAppLovinCreative({
             roas_3d: roas_d3,
             buyer_rate: buyer_rate_d3,
             spend,
             installs,
             cost: spend,
-            sales_3d: purchasers,
+            sales_3d: 0,
           }, config),
         };
       });
@@ -156,6 +140,34 @@ export default function Layer2VideoTab() {
   }, [config]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/appsflyer-upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      
+      alert(`✅ Upload thành công! ${json.message}`);
+      // Reload data
+      fetchData(true);
+    } catch (err: unknown) {
+      alert(`❌ Upload lỗi: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -181,17 +193,15 @@ export default function Layer2VideoTab() {
 
   const totalSpend = ads.reduce((s, a) => s + a.cost, 0);
   const totalInstalls = ads.reduce((s, a) => s + a.installs, 0);
-  const totalRevenue = ads.reduce((s, a) => s + a.revenue, 0);
-  const totalPurchasers = ads.reduce((s, a) => s + a.purchasers, 0);
   const totalImpressions = ads.reduce((s, a) => s + a.impressions, 0);
-  const overallROI = totalSpend > 0 ? (totalRevenue / totalSpend) * 100 : 0;
-  const overallBuyerRate = totalInstalls > 0 ? (totalPurchasers / totalInstalls) * 100 : 0;
+  const adsWithAF = ads.filter(a => a.has_af_data);
+  const avgRoasD3 = adsWithAF.length > 0 ? adsWithAF.reduce((s, a) => s + a.roas_d3, 0) / adsWithAF.length : 0;
+  const avgBuyerD3 = adsWithAF.length > 0 ? adsWithAF.reduce((s, a) => s + a.buyer_rate_d3, 0) / adsWithAF.length : 0;
   const avgCPI = totalInstalls > 0 ? totalSpend / totalInstalls : 0;
   const winners = ads.filter(a => a.decision_result.decision === 'winner').length;
   const watching = ads.filter(a => a.decision_result.decision === 'watching').length;
   const fails = ads.filter(a => a.decision_result.decision === 'fail').length;
   const total = ads.length;
-  const maxROI = Math.max(...ads.map(a => a.roi), 100);
 
   const formatCurrency = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toFixed(2)}`;
 
@@ -223,14 +233,14 @@ export default function Layer2VideoTab() {
 
   const kpiCards = [
     { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
-    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
-    { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate D3', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
-    { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
+    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${avgRoasD3.toFixed(1)}%`, color: getRoiColor(avgRoasD3), sub: `Benchmark: 68%`, highlight: true },
+    { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate D3', value: `${avgBuyerD3.toFixed(1)}%`, color: avgBuyerD3 >= 9.5 ? '#10b981' : avgBuyerD3 >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
+    { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${adsWithAF.length} matched` },
     { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
   ];
 
-  const testedAds = ads.filter(a => a.purchasers >= 10);
-  const roiLeaderboard = [...testedAds].sort((a, b) => b.roi - a.roi).slice(0, 5).map(a => ({ name: a.ad_name, value: a.roi, formatted: `${a.roi.toFixed(1)}%` }));
+  const testedAds = ads.filter(a => a.has_af_data && a.roas_d3 > 0);
+  const roiLeaderboard = [...testedAds].sort((a, b) => b.roas_d3 - a.roas_d3).slice(0, 5).map(a => ({ name: a.ad_name, value: a.roas_d3, formatted: `${a.roas_d3.toFixed(1)}%` }));
   const buyerLeaderboard = [...testedAds].sort((a, b) => b.buyer_rate_d3 - a.buyer_rate_d3).slice(0, 5).map(a => ({ name: a.ad_name, value: a.buyer_rate_d3, formatted: `${a.buyer_rate_d3.toFixed(1)}%` }));
 
   return (
@@ -253,7 +263,7 @@ export default function Layer2VideoTab() {
                 <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#ef4444' }}><span className="text-[12px]">❌</span> {card.fails}</span>
               </div>
             ) : (
-              <div className="text-lg font-bold" style={{ color: card.highlight ? getRoiColor(overallROI) : card.color }}>
+              <div className="text-lg font-bold" style={{ color: card.highlight ? getRoiColor(avgRoasD3) : card.color }}>
                 {card.value}
               </div>
             )}
@@ -316,12 +326,25 @@ export default function Layer2VideoTab() {
             )}
             <button onClick={() => fetchData(true)} disabled={loading}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', opacity: loading ? 0.5 : 1 }}
-            >
-              {loading ? '⏳ Syncing...' : '🔄 Sync'}
+              style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
+              🔄 Sync
+            </button>
+            {/* Upload CSV button */}
+            <input type="file" ref={fileInputRef} accept=".csv,.tsv,.txt" onChange={handleUpload} className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa' }}>
+              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV</>}
             </button>
           </div>
-          <div className="text-xs" style={{ color: '#64748b' }}>Last 14 days (via AppsFlyer)</div>
+          <div className="flex items-center gap-3">
+            {uploadInfo && (
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
+                <CheckCircle size={12} /> {uploadInfo}
+              </span>
+            )}
+            <span className="text-xs" style={{ color: '#64748b' }}>Last 14 days (via AppsFlyer)</span>
+          </div>
         </div>
 
         {error && (
@@ -377,7 +400,7 @@ export default function Layer2VideoTab() {
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${maxROI > 0 ? Math.min((ad.roi / maxROI) * 100, 100) : 0}%`, background: getRoiColor(ad.roi) }} />
+                            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(Math.abs(ad.roas_d3), 100)}%`, background: getRoiColor(ad.roas_d3) }} />
                           </div>
                           <span className="text-xs font-bold" style={{ color: getRoiColor(ad.roi), minWidth: '45px', textAlign: 'right' }}>
                             {ad.has_af_data ? `${ad.roi.toFixed(1)}%` : 'N/A'}
