@@ -52,11 +52,33 @@ export default function Layer2VideoTab() {
         console.log('[L2V] Meta ad names sample:', metaAds.slice(0, 5).map((a: any) => a.ad_name).join(', '));
       }
 
+      // Campaign-level fallback: if AF has no per-ad data (only "Unknown"),
+      // use campaign totals to compute ROAS and buyer rate for all ads
+      const campaignAF = afAds.length > 0 ? afAds.reduce((acc, a) => ({
+        revenue: acc.revenue + a.revenue,
+        cost: acc.cost + a.cost,
+        purchasers: acc.purchasers + a.purchasers,
+        installs: acc.installs + a.installs,
+        buyer_rate: a.buyer_rate,
+        buyer_rate_d3: a.buyer_rate_d3,
+        roi: a.roi,
+      }), { revenue: 0, cost: 0, purchasers: 0, installs: 0, buyer_rate: 0, buyer_rate_d3: 0, roi: 0 }) : null;
+      
+      const campaignROAS = campaignAF && campaignAF.cost > 0 
+        ? (campaignAF.revenue / campaignAF.cost) * 100 : 0;
+      const campaignBuyerRate = campaignAF 
+        ? campaignAF.buyer_rate : 0;
+      const campaignBuyerRateD3 = campaignAF 
+        ? campaignAF.buyer_rate_d3 : 0;
+      const totalMetaInstalls = metaAds.reduce((s: number, a: any) => s + (a.installs || 0), 0);
+
+      console.log(`[L2V] Campaign AF: revenue=$${campaignAF?.revenue?.toFixed(2)}, cost=$${campaignAF?.cost?.toFixed(2)}, purchasers=${campaignAF?.purchasers}, ROAS=${campaignROAS.toFixed(1)}%, buyerRate=${campaignBuyerRate.toFixed(1)}%`);
+
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
         // Try exact match first, then fuzzy match by creative code
         const metaCode = extractCreativeCode(metaAd.ad_name);
         const afAd = afAds.find(a => a.ad_name === metaAd.ad_name)
-          || afAds.find(a => extractCreativeCode(a.ad_name) === metaCode);
+          || afAds.find(a => a.ad_name !== 'Unknown' && extractCreativeCode(a.ad_name) === metaCode);
         
         const spend = metaAd.spend || 0;
         const impressions = metaAd.impressions || 0;
@@ -65,11 +87,32 @@ export default function Layer2VideoTab() {
         const cpi = metaAd.cpi || 0;
         const ctr = metaAd.ctr || 0;
 
-        const purchasers = afAd ? afAd.purchasers : 0;
-        const buyer_rate = afAd ? afAd.buyer_rate : 0;
-        const buyer_rate_d3 = afAd ? afAd.buyer_rate_d3 : 0;
-        const revenue = afAd ? afAd.revenue : 0;
-        const roas_d3 = spend > 0 && revenue > 0 ? (revenue / spend) * 100 : 0;
+        // If individual ad match found, use it. Otherwise, use campaign-level data
+        const hasDirectMatch = !!afAd && afAd.ad_name !== 'Unknown';
+        const hasCampaignData = !!campaignAF && campaignAF.revenue > 0;
+        
+        let purchasers = 0;
+        let buyer_rate = 0;
+        let buyer_rate_d3 = 0;
+        let revenue = 0;
+
+        if (hasDirectMatch && afAd) {
+          // Direct per-ad match
+          purchasers = afAd.purchasers;
+          buyer_rate = afAd.buyer_rate;
+          buyer_rate_d3 = afAd.buyer_rate_d3;
+          revenue = afAd.revenue;
+        } else if (hasCampaignData && campaignAF) {
+          // Campaign-level: proportional split by install share
+          const installShare = totalMetaInstalls > 0 ? installs / totalMetaInstalls : 0;
+          purchasers = Math.round(campaignAF.purchasers * installShare);
+          revenue = campaignAF.revenue * installShare;
+          // Buyer rate and ROAS are campaign-level (same for all ads)
+          buyer_rate = campaignBuyerRate;
+          buyer_rate_d3 = campaignBuyerRateD3;
+        }
+
+        const roas_d3 = campaignROAS; // Campaign-level ROAS applies to all
         const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
         const cpa = purchasers > 0 ? spend / purchasers : 0;
 
@@ -92,7 +135,7 @@ export default function Layer2VideoTab() {
           cpa,
           buyer_rate,
           buyer_rate_d3,
-          has_af_data: !!afAd,
+          has_af_data: hasDirectMatch || hasCampaignData,
           decision_result: scoreAppLovinCreative({
             roas_3d: roas_d3,
             buyer_rate: buyer_rate_d3,
