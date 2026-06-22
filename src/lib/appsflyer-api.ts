@@ -12,15 +12,14 @@ export interface AppsFlyerAd {
   cost: number;
   revenue: number;
   roi: number;  // Total Revenue / Total Cost (lifetime)
-  roas_d3: number; // ROAS Day 3 (revenue_d3 / cost * 100)
-  revenue_d3: number; // Revenue at Day 3 cohort
+  buyer_rate_d3: number; // Buyer Rate at Day 3 cohort (purchasers_d3 / installs * 100)
   purchasers: number; // af_purchase unique users
   purchase_revenue: number; // af_purchase sales in USD
   // Computed
   ctr: number;
   cpi: number;
   cpm: number;
-  buyer_rate: number; // purchasers / installs * 100
+  buyer_rate: number; // purchasers / installs * 100 (lifetime)
 }
 
 function parseCSV(csv: string): Record<string, string>[] {
@@ -62,8 +61,8 @@ function parseCSV(csv: string): Record<string, string>[] {
   return rows;
 }
 
-// Fetch D3 cohort data from AppsFlyer Cohort API
-async function getAppsFlyerCohortD3(): Promise<Record<string, { revenue_d3: number; roas_d3: number }>> {
+// Fetch D3 cohort buyer data from AppsFlyer Cohort API
+async function getAppsFlyerCohortD3(): Promise<Record<string, { buyer_rate_d3: number }>> {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 100);
@@ -75,7 +74,7 @@ async function getAppsFlyerCohortD3(): Promise<Record<string, { revenue_d3: numb
     from: startStr,
     to: endStr,
     groupings: 'pid,c,af_ad',
-    kpis: 'cost,revenue,roi',
+    kpis: 'af_purchase_unique_users,users',
     cohort_type: 'user_acquisition',
     cohort_day: '3',
     min_cohort_size: '1',
@@ -94,29 +93,40 @@ async function getAppsFlyerCohortD3(): Promise<Record<string, { revenue_d3: numb
     });
     
     if (!res.ok) {
-      console.warn(`AppsFlyer Cohort API error: ${res.status}`);
+      const errText = await res.text();
+      console.warn(`AppsFlyer Cohort API error: ${res.status} - ${errText}`);
       return {};
     }
     
     const json = await res.json();
-    const result: Record<string, { revenue_d3: number; roas_d3: number }> = {};
+    console.log('AppsFlyer Cohort D3 raw response keys:', JSON.stringify(Object.keys(json)));
     
-    // Parse cohort response — format may vary
-    const rows = json.data || json.results || json || [];
+    const result: Record<string, { buyer_rate_d3: number }> = {};
+    
+    // Try multiple response formats
+    const rows = json.data?.results || json.data || json.results || json || [];
     if (Array.isArray(rows)) {
       rows.forEach((row: any) => {
         const adName = row.dimensions?.af_ad || row.af_ad || row['Ad (af_ad)'] || '';
         const campaign = row.dimensions?.c || row.c || row['Campaign (c)'] || '';
         if (!campaign.includes(CAMPAIGN_FILTER) || !adName) return;
         
-        const revenue = row.kpis?.revenue?.day_3 ?? row.revenue_day_3 ?? row.revenue ?? 0;
-        const cost = row.kpis?.cost?.day_3 ?? row.cost_day_3 ?? row.cost ?? 0;
-        const roas = cost > 0 ? (revenue / cost) * 100 : 0;
+        // Try to extract purchasers D3 and users D3
+        const purchasersD3 = row.kpis?.af_purchase_unique_users?.day_3 
+          ?? row.af_purchase_unique_users_day_3 
+          ?? row.af_purchase_unique_users 
+          ?? 0;
+        const usersD3 = row.kpis?.users?.day_3 
+          ?? row.users_day_3 
+          ?? row.users 
+          ?? 0;
         
-        result[adName] = { revenue_d3: revenue, roas_d3: roas };
+        const buyerRateD3 = usersD3 > 0 ? (purchasersD3 / usersD3) * 100 : 0;
+        result[adName] = { buyer_rate_d3: buyerRateD3 };
       });
     }
     
+    console.log(`AppsFlyer Cohort D3: parsed ${Object.keys(result).length} ads`);
     return result;
   } catch (err) {
     console.warn('AppsFlyer Cohort D3 fetch failed:', err);
@@ -183,6 +193,9 @@ export async function getAppsFlyerCreativeStats(): Promise<{ campaign: string; a
     const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0;
     const buyer_rate = installs > 0 ? (purchasers / installs) * 100 : 0;
     
+    // Use D3 buyer rate from cohort API, fallback to lifetime buyer rate
+    const buyer_rate_d3 = d3Data?.buyer_rate_d3 ?? buyer_rate;
+    
     return {
       ad_name: adName,
       campaign: row['Campaign (c)'] || row['Campaign'] || '',
@@ -193,8 +206,7 @@ export async function getAppsFlyerCreativeStats(): Promise<{ campaign: string; a
       cost,
       revenue,
       roi,
-      roas_d3: d3Data?.roas_d3 ?? 0,
-      revenue_d3: d3Data?.revenue_d3 ?? 0,
+      buyer_rate_d3,
       purchasers,
       purchase_revenue: purchaseRevenue,
       ctr,

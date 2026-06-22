@@ -11,9 +11,10 @@ interface EnrichedAd extends AppsFlyerAd {
   decision_result: AppLovinDecisionResult;
   ipm: number;
   cpa: number;
+  buyer_rate_d3: number;
 }
 
-type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
+type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
 
 export default function Layer2VideoTab() {
   const [ads, setAds] = useState<EnrichedAd[]>([]);
@@ -55,9 +56,10 @@ export default function Layer2VideoTab() {
         const cpi = metaAd.cpi || 0;
         const ctr = metaAd.ctr || 0;
 
-        const roi = afAd ? afAd.roas_d3 : 0;
+        const roi = afAd ? afAd.roi : 0;
         const purchasers = afAd ? afAd.purchasers : 0;
         const buyer_rate = afAd ? afAd.buyer_rate : 0;
+        const buyer_rate_d3 = afAd ? afAd.buyer_rate_d3 : 0;
         const revenue = afAd ? afAd.revenue : 0;
         const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
         const cpa = purchasers > 0 ? spend / purchasers : 0;
@@ -80,10 +82,11 @@ export default function Layer2VideoTab() {
           ipm,
           cpa,
           buyer_rate,
+          buyer_rate_d3,
           has_af_data: !!afAd,
           decision_result: scoreAppLovinCreative({
             roas_3d: roi,
-            buyer_rate: buyer_rate,
+            buyer_rate: buyer_rate_d3,
             spend,
             installs,
             cost: spend,
@@ -150,8 +153,8 @@ export default function Layer2VideoTab() {
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '70px' },
     { key: 'ipm', label: 'IPM', align: 'right', width: '70px' },
-    { key: 'roi', label: 'ROAS D3', align: 'right', width: '90px' },
-    { key: 'buyer_rate', label: 'Buyer Rate', align: 'right', width: '85px' },
+    { key: 'roi', label: 'ROI', align: 'right', width: '90px' },
+    { key: 'buyer_rate_d3', label: 'Buyer D3', align: 'right', width: '85px' },
     { key: 'purchasers', label: 'Purchasers', align: 'right', width: '80px' },
     { key: 'cpa', label: 'CPA', align: 'right', width: '80px' },
     { key: 'ctr', label: 'CTR', align: 'right', width: '65px' },
@@ -168,15 +171,15 @@ export default function Layer2VideoTab() {
 
   const kpiCards = [
     { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
-    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
-    { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
+    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'Overall ROI', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
+    { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate D3', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
     { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
     { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
   ];
 
   const testedAds = ads.filter(a => a.purchasers >= 10);
   const roiLeaderboard = [...testedAds].sort((a, b) => b.roi - a.roi).slice(0, 5).map(a => ({ name: a.ad_name, value: a.roi, formatted: `${a.roi.toFixed(1)}%` }));
-  const buyerLeaderboard = [...testedAds].sort((a, b) => b.buyer_rate - a.buyer_rate).slice(0, 5).map(a => ({ name: a.ad_name, value: a.buyer_rate, formatted: `${a.buyer_rate.toFixed(1)}%` }));
+  const buyerLeaderboard = [...testedAds].sort((a, b) => b.buyer_rate_d3 - a.buyer_rate_d3).slice(0, 5).map(a => ({ name: a.ad_name, value: a.buyer_rate_d3, formatted: `${a.buyer_rate_d3.toFixed(1)}%` }));
 
   return (
     <div className="space-y-5 fade-in-up">
@@ -213,7 +216,7 @@ export default function Layer2VideoTab() {
       {!loading && testedAds.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="glass-card p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">🏆 Top ROAS D3</h3>
+            <h3 className="text-sm font-semibold text-slate-200 mb-3">🏆 Top ROI</h3>
             {roiLeaderboard.map((item, i) => {
               const max = Math.max(...roiLeaderboard.map(x => x.value), 100);
               return (
@@ -230,7 +233,7 @@ export default function Layer2VideoTab() {
             })}
           </div>
           <div className="glass-card p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">🛒 Top Buyer Rate</h3>
+            <h3 className="text-sm font-semibold text-slate-200 mb-3">🛒 Top Buyer Rate D3</h3>
             {buyerLeaderboard.map((item, i) => {
               const max = Math.max(...buyerLeaderboard.map(x => x.value), 10);
               return (
@@ -329,8 +332,8 @@ export default function Layer2VideoTab() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: ad.buyer_rate >= 5 ? '#10b981' : ad.buyer_rate >= 3 ? '#f59e0b' : '#94a3b8' }}>
-                        {ad.has_af_data ? (ad.buyer_rate > 0 ? `${ad.buyer_rate.toFixed(1)}%` : '\u2014') : 'N/A'}
+                      <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: ad.buyer_rate_d3 >= 5 ? '#10b981' : ad.buyer_rate_d3 >= 3 ? '#f59e0b' : '#94a3b8' }}>
+                        {ad.has_af_data ? (ad.buyer_rate_d3 > 0 ? `${ad.buyer_rate_d3.toFixed(1)}%` : '—') : 'N/A'}
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.purchasers > 0 ? ad.purchasers : '\u2014') : 'N/A'}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.cpa > 0 ? formatCurrency(ad.cpa) : '\u2014') : 'N/A'}</td>
