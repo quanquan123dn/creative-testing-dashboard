@@ -55,7 +55,7 @@ export default function Layer2VideoTab() {
         const cpi = metaAd.cpi || 0;
         const ctr = metaAd.ctr || 0;
 
-        const roi = afAd ? afAd.roi : 0;
+        const roi = afAd ? afAd.roas_d3 : 0;
         const purchasers = afAd ? afAd.purchasers : 0;
         const buyer_rate = afAd ? afAd.buyer_rate : 0;
         const revenue = afAd ? afAd.revenue : 0;
@@ -150,7 +150,7 @@ export default function Layer2VideoTab() {
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '70px' },
     { key: 'ipm', label: 'IPM', align: 'right', width: '70px' },
-    { key: 'roi', label: 'ROAS', align: 'right', width: '90px' },
+    { key: 'roi', label: 'ROAS D3', align: 'right', width: '90px' },
     { key: 'buyer_rate', label: 'Buyer Rate', align: 'right', width: '85px' },
     { key: 'purchasers', label: 'Purchasers', align: 'right', width: '80px' },
     { key: 'cpa', label: 'CPA', align: 'right', width: '80px' },
@@ -168,7 +168,7 @@ export default function Layer2VideoTab() {
 
   const kpiCards = [
     { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
-    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'Overall ROI', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
+    { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${overallROI.toFixed(1)}%`, color: getRoiColor(overallROI), sub: `Benchmark: 68%`, highlight: true },
     { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate', value: `${overallBuyerRate.toFixed(1)}%`, color: overallBuyerRate >= 9.5 ? '#10b981' : overallBuyerRate >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
     { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} purchasers` },
     { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
@@ -213,7 +213,7 @@ export default function Layer2VideoTab() {
       {!loading && testedAds.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="glass-card p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-3">🏆 Top ROI</h3>
+            <h3 className="text-sm font-semibold text-slate-200 mb-3">🏆 Top ROAS D3</h3>
             {roiLeaderboard.map((item, i) => {
               const max = Math.max(...roiLeaderboard.map(x => x.value), 100);
               return (
