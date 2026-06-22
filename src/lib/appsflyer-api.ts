@@ -1,6 +1,6 @@
 const APPSFLYER_TOKEN = process.env.APPSFLYER_TOKEN || '';
 const APP_ID = 'com.fansipan.epic.stickman.survival.rpg.idle.game';
-const CAMPAIGN_FILTER = 'Layer 2.5 creative test';
+const CAMPAIGN_FILTER = 'Layer 2 creative test';
 
 export interface AppsFlyerAd {
   ad_name: string;
