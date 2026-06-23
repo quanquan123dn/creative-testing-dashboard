@@ -88,12 +88,21 @@ export async function GET(request: Request) {
       notificationSent = true;
     }
 
-    // 6. Save current winners list to Blob
+    // 6. Save current winners list to Blob (delete first to avoid overwrite issues)
     const notifiedData: NotifiedWinners = {
       ad_names: winners.map(w => w.name),
       last_checked: new Date().toISOString(),
       last_notified: notificationSent ? new Date().toISOString() : null,
     };
+
+    try {
+      // Delete existing blob first
+      const { blobs: existingBlobs } = await list({ prefix: 'notified-winners' });
+      if (existingBlobs.length > 0) {
+        const { del } = await import('@vercel/blob');
+        await del(existingBlobs.map(b => b.url));
+      }
+    } catch { /* ignore delete errors */ }
 
     await put(BLOB_KEY, JSON.stringify(notifiedData), {
       access: 'public',
