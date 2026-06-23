@@ -10,7 +10,7 @@ interface EnrichedAppLovinAd extends AppLovinCreativeSet {
   decision_result: AppLovinDecisionResult;
 }
 
-type SortKey = 'creative_set' | 'cost' | 'impressions' | 'installs' | 'roas_3d' | 'buyer_rate' | 'sales_3d' | 'ctr' | 'cpm' | 'cpi' | 'ir';
+type SortKey = 'creative_set' | 'test_date' | 'cost' | 'impressions' | 'installs' | 'roas_3d' | 'buyer_rate' | 'sales_3d' | 'ctr' | 'cpm' | 'cpi' | 'ir';
 
 export default function AppLovinTab() {
   const [ads, setAds] = useState<EnrichedAppLovinAd[]>([]);
@@ -100,6 +100,7 @@ export default function AppLovinTab() {
 
   const columns: { key: SortKey; label: string; align?: 'right' | 'left'; width?: string }[] = [
     { key: 'creative_set', label: 'Creative Set', align: 'left', width: '180px' },
+    { key: 'test_date', label: 'Test Date', align: 'left', width: '95px' },
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
     { key: 'impressions', label: 'Impr', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '75px' },
@@ -299,6 +300,9 @@ export default function AppLovinTab() {
                       <td className="px-3 py-3 text-left">
                         <div className="font-medium text-slate-200 text-xs truncate" title={ad.creative_set}>{ad.creative_set}</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#475569' }}>{ad.creative_set_id.slice(0, 12)}...</div>
+                      </td>
+                      <td className="px-3 py-3 text-left text-xs" style={{ color: '#94a3b8' }}>
+                        {ad.test_date ? new Date(ad.test_date).toLocaleDateString('vi-VN') : '-'}
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cost)}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.impressions.toLocaleString()}</td>

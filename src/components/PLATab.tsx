@@ -11,7 +11,7 @@ interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
 }
 
-type SortKey = 'creative_pack_name' | 'starts' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'cvr' | 'cpi' | 'cpm';
+type SortKey = 'creative_pack_name' | 'test_date' | 'starts' | 'installs' | 'spend' | 'ipm' | 'ctr' | 'cvr' | 'cpi' | 'cpm';
 
 function formatNumber(n: number, decimals = 2): string {
   if (n === 0) return '—';
@@ -133,6 +133,7 @@ export default function PLATab() {
 
   const columns: { key: SortKey; label: string; align?: 'right' | 'left'; width?: string }[] = [
     { key: 'creative_pack_name', label: 'Creative Pack', align: 'left', width: '180px' },
+    { key: 'test_date', label: 'Test Date', align: 'left', width: '95px' },
     { key: 'spend', label: 'Spend', align: 'right', width: '85px' },
     { key: 'starts', label: 'Impr', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '75px' },
@@ -317,6 +318,9 @@ export default function PLATab() {
                       <td className="px-4 py-3 text-left">
                         <div className="font-medium text-slate-200 text-xs">{ad.creative_pack_name}</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#475569' }}>{ad.creative_pack_id.slice(0, 12)}...</div>
+                      </td>
+                      <td className="px-4 py-3 text-left text-xs" style={{ color: '#94a3b8' }}>
+                        {ad.test_date ? new Date(ad.test_date).toLocaleDateString('vi-VN') : '-'}
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>
                         {formatCurrency(ad.spend)}

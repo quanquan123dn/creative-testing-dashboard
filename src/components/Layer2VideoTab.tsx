@@ -7,6 +7,7 @@ import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCi
 
 interface EnrichedAd {
   ad_name: string;
+  test_date: string;
   campaign: string;
   media_source: string;
   impressions: number;
@@ -29,7 +30,7 @@ interface EnrichedAd {
   decision_result: AppLovinDecisionResult;
 }
 
-type SortKey = 'ad_name' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'roas_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
+type SortKey = 'ad_name' | 'test_date' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'roas_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
 
 interface AFUploadRow {
   adset_name: string;
@@ -101,6 +102,7 @@ export default function Layer2VideoTab() {
 
         return {
           ad_name: metaAd.ad_name,
+          test_date: metaAd.created_time || metaAd.date_start || '',
           campaign: metaAd.campaign || 'Layer 2',
           media_source: 'Facebook',
           impressions,
@@ -212,6 +214,7 @@ export default function Layer2VideoTab() {
 
   const columns: { key: SortKey; label: string; align?: 'right' | 'left'; width?: string }[] = [
     { key: 'ad_name', label: 'Ad Creative', align: 'left', width: '180px' },
+    { key: 'test_date', label: 'Test Date', align: 'left', width: '95px' },
     { key: 'cost', label: 'Spend', align: 'right', width: '85px' },
     { key: 'installs', label: 'Installs', align: 'right', width: '70px' },
     { key: 'ipm', label: 'IPM', align: 'right', width: '70px' },
@@ -374,13 +377,13 @@ export default function Layer2VideoTab() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #1e2d4a' }}>
-                    {Array.from({ length: 13 }).map((_, j) => (
+                    {Array.from({ length: 14 }).map((_, j) => (
                       <td key={j} className="px-3 py-3"><div className="h-4 rounded shimmer" /></td>
                     ))}
                   </tr>
                 ))
               ) : sortedAds.length === 0 ? (
-                <tr><td colSpan={13} className="px-3 py-12 text-center text-sm" style={{ color: '#64748b' }}>No ad data found</td></tr>
+                <tr><td colSpan={14} className="px-3 py-12 text-center text-sm" style={{ color: '#64748b' }}>No ad data found</td></tr>
               ) : (
                 sortedAds.map((ad, idx) => {
                   const dr = ad.decision_result;
@@ -393,6 +396,9 @@ export default function Layer2VideoTab() {
                       <td className="px-3 py-3 text-xs" style={{ color: '#475569' }}>{idx + 1}</td>
                       <td className="px-3 py-3 text-left">
                         <div className="font-medium text-slate-200 text-xs truncate" title={ad.ad_name}>{ad.ad_name}</div>
+                      </td>
+                      <td className="px-3 py-3 text-left text-xs" style={{ color: '#94a3b8' }}>
+                        {ad.test_date ? new Date(ad.test_date).toLocaleDateString('vi-VN') : '-'}
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cost)}</td>
                       <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: '#e2e8f0' }}>{ad.installs.toLocaleString()}</td>

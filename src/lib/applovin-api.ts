@@ -16,6 +16,7 @@ export interface AppLovinCreativeSet {
   cpm: number;
   buyer_rate: number;  // sales_3d / installs * 100
   ir: number;          // installs / impressions * 1000 (install rate per mille)
+  test_date: string;   // first date with data (earliest day)
 }
 
 export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ads: AppLovinCreativeSet[] }> {
@@ -66,6 +67,7 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
         sales_3d: 0,
         ctr_sum: 0,
         ctr_count: 0,
+        test_date: row.day || '',
       });
     }
     const agg = byId.get(id)!;
@@ -74,6 +76,10 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
     agg.installs += parseFloat(row.conversions) || 0;
     agg.cost += parseFloat(row.cost) || 0;
     agg.sales_3d += parseFloat(row.sales_3d) || 0;
+    // Track earliest date
+    if (row.day && (!agg.test_date || row.day < agg.test_date)) {
+      agg.test_date = row.day;
+    }
     // For ROAS, we weight average by cost
     const rowCost = parseFloat(row.cost) || 0;
     const rowRoas = parseFloat(row.roas_3d) || 0;
@@ -108,6 +114,7 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
       cpm,
       buyer_rate,
       ir,
+      test_date: agg.test_date || '',
     };
   });
   

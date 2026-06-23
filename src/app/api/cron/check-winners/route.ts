@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { put, list } from '@vercel/blob';
 import { scoreCreative, DEFAULT_CONFIG } from '@/lib/decision-engine';
 import { getAllAdInsights } from '@/lib/meta-api';
+import { getAppLovinCreativeStats } from '@/lib/applovin-api';
 import { getUnityCreativeStats } from '@/lib/unity-api';
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';
@@ -9,7 +10,8 @@ const BLOB_KEY = 'notified-alerts/latest.json';
 
 interface NotifiedAlerts {
   video_winners: string[];    // Layer 1 Video winners already notified
-  pla_10k: string[];          // PLA creatives that hit 10k impressions already notified
+  pla_10k: string[];          // Unity PLA creatives that hit 10k impressions
+  applovin_10p: string[];     // AppLovin PLA creatives that hit 10 purchasers
   last_checked: string;
   last_notified: string | null;
 }
@@ -95,13 +97,37 @@ export async function GET(request: Request) {
         }
       }
     } catch (e) {
-      console.error('PLA check error:', e);
+      console.error('PLA Unity check error:', e);
+    }
+
+    // === APPLOVIN PLA: Check 10 Purchasers ===
+    let applovin10p: AlertCreative[] = [];
+    let totalAppLovinAds = 0;
+
+    try {
+      const alData = await getAppLovinCreativeStats();
+      const alAds = alData?.ads || [];
+      totalAppLovinAds = alAds.length;
+
+      for (const a of alAds) {
+        if (a.sales_3d >= 10) {
+          applovin10p.push({
+            name: a.creative_set || 'Unknown',
+            ipm: a.ir || 0,
+            spend: a.cost || 0,
+            installs: a.installs || 0,
+            impressions: a.impressions || 0,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('AppLovin check error:', e);
     }
 
     // === Load previously notified alerts ===
     let prevVideoWinners: string[] = [];
     let prevPla10k: string[] = [];
-    
+    let prevApplovin10p: string[] = [];
     try {
       const { blobs } = await list({ prefix: 'notified-alerts' });
       if (blobs.length > 0) {
@@ -112,6 +138,7 @@ export async function GET(request: Request) {
         const data: NotifiedAlerts = await res.json();
         prevVideoWinners = data.video_winners || [];
         prevPla10k = data.pla_10k || [];
+        prevApplovin10p = data.applovin_10p || [];
       }
     } catch {
       // First run
@@ -120,11 +147,12 @@ export async function GET(request: Request) {
     // === Find NEW alerts ===
     const newVideoWinners = videoWinners.filter(w => !prevVideoWinners.includes(w.name));
     const newPla10k = pla10k.filter(p => !prevPla10k.includes(p.name));
+    const newApplovin10p = applovin10p.filter(a => !prevApplovin10p.includes(a.name));
 
     // === Send Discord ===
     let notificationSent = false;
-    if ((newVideoWinners.length > 0 || newPla10k.length > 0) && DISCORD_WEBHOOK_URL) {
-      await sendDiscordNotification(newVideoWinners, newPla10k, videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds);
+    if ((newVideoWinners.length > 0 || newPla10k.length > 0 || newApplovin10p.length > 0) && DISCORD_WEBHOOK_URL) {
+      await sendDiscordNotification(newVideoWinners, newPla10k, newApplovin10p, videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds, applovin10p.length, totalAppLovinAds);
       notificationSent = true;
     }
 
@@ -132,6 +160,7 @@ export async function GET(request: Request) {
     const notifiedData: NotifiedAlerts = {
       video_winners: videoWinners.map(w => w.name),
       pla_10k: pla10k.map(p => p.name),
+      applovin_10p: applovin10p.map(a => a.name),
       last_checked: new Date().toISOString(),
       last_notified: notificationSent ? new Date().toISOString() : null,
     };
@@ -153,10 +182,12 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       video: { total: totalVideoAds, winners: videoWinners.length, new_winners: newVideoWinners.length },
-      pla: { total: totalPLAAds, reached_10k: pla10k.length, new_10k: newPla10k.length },
+      pla_unity: { total: totalPLAAds, reached_10k: pla10k.length, new_10k: newPla10k.length },
+      pla_applovin: { total: totalAppLovinAds, reached_10p: applovin10p.length, new_10p: newApplovin10p.length },
       notification_sent: notificationSent,
       new_video_winners: newVideoWinners.map(w => w.name),
       new_pla_10k: newPla10k.map(p => p.name),
+      new_applovin_10p: newApplovin10p.map(a => a.name),
     });
   } catch (error: unknown) {
     console.error('Cron check-winners error:', error);
@@ -173,10 +204,13 @@ export async function GET(request: Request) {
 async function sendDiscordNotification(
   newVideoWinners: AlertCreative[],
   newPla10k: AlertCreative[],
+  newApplovin10p: AlertCreative[],
   totalVideoWinners: number,
   totalVideoAds: number,
   totalPla10k: number,
   totalPLAAds: number,
+  totalApplovin10p: number,
+  totalAppLovinAds: number,
 ) {
   const embeds: any[] = [];
 
@@ -198,7 +232,7 @@ async function sendDiscordNotification(
     });
   }
 
-  // PLA 10k embed
+  // Unity PLA 10k embed
   if (newPla10k.length > 0) {
     const plaList = newPla10k.map((p, i) => 
       `**${i + 1}. ${p.name}**\n` +
@@ -206,12 +240,30 @@ async function sendDiscordNotification(
     ).join('\n\n');
 
     embeds.push({
-      title: '🎯 Layer 2 PLA — Đủ 10K Impressions!',
+      title: '🎯 Layer 2 PLA Unity — Đủ 10K Impressions!',
       description: `**${newPla10k.length}** PLA creative(s) mới đạt đủ 10,000 impressions:`,
       color: 0x8b5cf6,
       fields: [
         { name: '📋 Creatives đủ data', value: plaList, inline: false },
         { name: '📊 Summary', value: `Total ≥10K: **${totalPla10k}/${totalPLAAds}** creatives`, inline: false },
+      ],
+    });
+  }
+
+  // AppLovin PLA 10 purchasers embed
+  if (newApplovin10p.length > 0) {
+    const alList = newApplovin10p.map((a, i) => 
+      `**${i + 1}. ${a.name}**\n` +
+      `   Installs: \`${a.installs}\` | Spend: \`$${a.spend.toFixed(0)}\` | IR: \`${a.ipm.toFixed(2)}\``
+    ).join('\n\n');
+
+    embeds.push({
+      title: '🛒 Layer 2 PLA AppLovin — Đủ 10 Purchasers!',
+      description: `**${newApplovin10p.length}** AppLovin creative(s) mới đạt đủ 10 purchasers (D3):`,
+      color: 0xf59e0b,
+      fields: [
+        { name: '📋 Creatives đủ data', value: alList, inline: false },
+        { name: '📊 Summary', value: `Total ≥10 purchasers: **${totalApplovin10p}/${totalAppLovinAds}** creatives`, inline: false },
       ],
     });
   }

@@ -16,6 +16,7 @@ export interface UnityCreativeStat {
   cvr: number;     // conversion rate (installs/clicks)
   cpi: number;
   cpm: number;     // cost per mille impressions
+  test_date: string; // first date with data
 }
 
 export interface UnityInsightsResult {
@@ -127,7 +128,7 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
   const authHeader = getBasicAuthHeader();
   const { start, end } = getDateRange(datePreset);
 
-  const url = `https://services.api.unity.com/advertise/stats/v2/organizations/${orgId}/reports/acquisitions?start=${start}&end=${end}&metrics=starts,views,clicks,installs,spend&scale=summary&campaignIds=${campaignId}&breakdowns=creativePack`;
+  const url = `https://services.api.unity.com/advertise/stats/v2/organizations/${orgId}/reports/acquisitions?start=${start}&end=${end}&metrics=starts,views,clicks,installs,spend&scale=day&campaignIds=${campaignId}&breakdowns=creativePack`;
 
   const response = await fetch(url, {
     headers: {
@@ -144,18 +145,43 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
   const csvText = await response.text();
   const rows = parseCSV(csvText);
 
-  const creatives: UnityCreativeStat[] = rows.map((row) => {
-    const starts = parseFloat(row['starts'] || '0');  // impressions
-    const views = parseFloat(row['views'] || '0');     // completed views
-    const clicks = parseFloat(row['clicks'] || '0');
-    const installs = parseFloat(row['installs'] || '0');
-    const spend = parseFloat(row['spend'] || '0');
+  // Aggregate daily rows by creative pack
+  const byId = new Map<string, any>();
+  for (const row of rows) {
+    const id = row['creative pack id'] || '';
+    if (!id) continue;
+    if (!byId.has(id)) {
+      byId.set(id, {
+        creative_pack_id: id,
+        creative_pack_name: row['creative pack name'] || '',
+        starts: 0, views: 0, clicks: 0, installs: 0, spend: 0,
+        test_date: row['date'] || row['timestamp'] || '',
+      });
+    }
+    const agg = byId.get(id)!;
+    agg.starts += parseFloat(row['starts'] || '0');
+    agg.views += parseFloat(row['views'] || '0');
+    agg.clicks += parseFloat(row['clicks'] || '0');
+    agg.installs += parseFloat(row['installs'] || '0');
+    agg.spend += parseFloat(row['spend'] || '0');
+    // Track earliest date
+    const rowDate = row['date'] || row['timestamp'] || '';
+    if (rowDate && (!agg.test_date || rowDate < agg.test_date)) {
+      agg.test_date = rowDate;
+    }
+  }
+
+  const creatives: UnityCreativeStat[] = Array.from(byId.values()).map((agg) => {
+    const starts = agg.starts;
+    const clicks = agg.clicks;
+    const installs = agg.installs;
+    const spend = agg.spend;
 
     return {
-      creative_pack_id: row['creative pack id'] || '',
-      creative_pack_name: row['creative pack name'] || '',
+      creative_pack_id: agg.creative_pack_id,
+      creative_pack_name: agg.creative_pack_name,
       starts,
-      views,
+      views: agg.views,
       clicks,
       installs,
       spend,
@@ -164,6 +190,7 @@ export async function getUnityCreativeStats(datePreset: string): Promise<UnityIn
       cvr: clicks > 0 ? (installs / clicks) * 100 : 0,
       cpi: installs > 0 ? spend / installs : 0,
       cpm: starts > 0 ? (spend / starts) * 1000 : 0,
+      test_date: agg.test_date || '',
     };
   });
 
