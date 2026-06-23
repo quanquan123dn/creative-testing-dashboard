@@ -29,7 +29,7 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
   const endStr = end.toISOString().split('T')[0];
   
   // API columns: use 'conversions' for installs, 'sales_3d' for D3 purchasers
-  const columns = 'campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,sales_3d,ctr';
+  const columns = 'day,campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,sales_3d,ctr';
   
   const url = `https://r.applovin.com/report?api_key=${APPLOVIN_REPORT_KEY}&report_type=advertiser&columns=${columns}&start=${startStr}&end=${endStr}&format=json`;
   
