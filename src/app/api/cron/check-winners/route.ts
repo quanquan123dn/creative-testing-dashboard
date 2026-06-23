@@ -19,11 +19,13 @@ interface NotifiedWinners {
  * Runs every 6 hours via Vercel Cron
  */
 export async function GET(request: Request) {
-  // Verify cron secret (Vercel sends this header for cron jobs)
+  // Verify cron secret (supports both header and query param)
   const authHeader = request.headers.get('authorization');
+  const url = new URL(request.url);
+  const querySecret = url.searchParams.get('secret');
   const cronSecret = process.env.CRON_SECRET;
   
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}` && querySecret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
