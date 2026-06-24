@@ -62,11 +62,13 @@ export default function DashboardPage() {
           layer2_status = 'Không test';
         } else if (decision_result.decision === 'kill') {
           layer2_status = 'Không test';
-        } else {
-          const l2Ad = l2Ads.find((a: any) => 
-            a.ad_name.replace(/^TSH\d+_/, '').toLowerCase().trim() === 
-            ad.ad_name.replace(/^TSH\d+_/, '').toLowerCase().trim()
-          );
+        } else if (creativeCode) {
+          // Match by creative code (e.g. VE0266) — works whether L2 adset name is 
+          // full "TSH009_VE0266_..." or short "VE0266"
+          const l2Ad = l2Ads.find((a: any) => {
+            const l2Code = extractCreativeCode(a.ad_name);
+            return l2Code === creativeCode;
+          });
           if (l2Ad) {
             layer2_status = l2Ad.adset_status === 'ACTIVE' ? 'Đang test' : 'Đã test';
           }
