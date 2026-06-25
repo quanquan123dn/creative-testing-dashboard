@@ -151,9 +151,15 @@ export async function GET(request: Request) {
 
     // === Send Discord ===
     let notificationSent = false;
+    let discordError: string | null = null;
     if ((newVideoWinners.length > 0 || newPla10k.length > 0 || newApplovin10p.length > 0) && DISCORD_WEBHOOK_URL) {
-      await sendDiscordNotification(newVideoWinners, newPla10k, newApplovin10p, videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds, applovin10p.length, totalAppLovinAds);
-      notificationSent = true;
+      try {
+        await sendDiscordNotification(newVideoWinners, newPla10k, newApplovin10p, videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds, applovin10p.length, totalAppLovinAds);
+        notificationSent = true;
+      } catch (e) {
+        discordError = e instanceof Error ? e.message : 'Unknown Discord error';
+        console.error('Discord notification failed:', discordError);
+      }
     }
 
     // === Save current state ===
@@ -185,6 +191,7 @@ export async function GET(request: Request) {
       pla_unity: { total: totalPLAAds, reached_10k: pla10k.length, new_10k: newPla10k.length },
       pla_applovin: { total: totalAppLovinAds, reached_10p: applovin10p.length, new_10p: newApplovin10p.length },
       notification_sent: notificationSent,
+      discord_error: discordError,
       new_video_winners: newVideoWinners.map(w => w.name),
       new_pla_10k: newPla10k.map(p => p.name),
       new_applovin_10p: newApplovin10p.map(a => a.name),
@@ -274,6 +281,22 @@ async function sendDiscordNotification(
     embeds[embeds.length - 1].timestamp = new Date().toISOString();
   }
 
+  // Truncate field values (Discord limit: 1024 chars per field)
+  for (const embed of embeds) {
+    if (embed.fields) {
+      for (const field of embed.fields) {
+        if (field.value && field.value.length > 1000) {
+          field.value = field.value.substring(0, 997) + '...';
+        }
+        if (!field.value) field.value = 'N/A';
+      }
+    }
+    // Truncate description (Discord limit: 4096)
+    if (embed.description && embed.description.length > 4000) {
+      embed.description = embed.description.substring(0, 3997) + '...';
+    }
+  }
+
   const res = await fetch(DISCORD_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -281,7 +304,8 @@ async function sendDiscordNotification(
   });
 
   if (!res.ok) {
-    console.error(`Discord webhook error: ${res.status} ${await res.text()}`);
-    throw new Error(`Discord webhook failed: ${res.status}`);
+    const errorBody = await res.text();
+    console.error(`Discord webhook error: ${res.status} Body: ${errorBody}`);
+    throw new Error(`Discord webhook failed: ${res.status} - ${errorBody}`);
   }
 }
