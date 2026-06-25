@@ -28,95 +28,94 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
   const startStr = start.toISOString().split('T')[0];
   const endStr = end.toISOString().split('T')[0];
   
-  // API columns: use 'conversions' for installs, 'sales_3d' for D3 purchasers
-  const columns = 'day,campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,sales_3d,ctr';
+  // === Call 1: Aggregated metrics (WITHOUT day) — accurate totals ===
+  const metricsColumns = 'campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,sales_3d,ctr';
+  const metricsUrl = `https://r.applovin.com/report?api_key=${APPLOVIN_REPORT_KEY}&report_type=advertiser&columns=${metricsColumns}&start=${startStr}&end=${endStr}&format=json`;
   
-  const url = `https://r.applovin.com/report?api_key=${APPLOVIN_REPORT_KEY}&report_type=advertiser&columns=${columns}&start=${startStr}&end=${endStr}&format=json`;
+  // === Call 2: Daily breakdown (WITH day) — only for test_date ===
+  const dateColumns = 'day,campaign,creative_set_id';
+  const dateUrl = `https://r.applovin.com/report?api_key=${APPLOVIN_REPORT_KEY}&report_type=advertiser&columns=${dateColumns}&start=${startStr}&end=${endStr}&format=json`;
   
-  const res = await fetch(url, { next: { revalidate: 0 } });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`AppLovin API error: ${res.status} - ${text}`);
+  // Fetch both in parallel
+  const [metricsRes, dateRes] = await Promise.all([
+    fetch(metricsUrl, { next: { revalidate: 0 } }),
+    fetch(dateUrl, { next: { revalidate: 0 } }),
+  ]);
+
+  if (!metricsRes.ok) {
+    const text = await metricsRes.text();
+    throw new Error(`AppLovin API error: ${metricsRes.status} - ${text}`);
   }
   
-  const json = await res.json();
-  
-  if (json.code !== 200) {
-    throw new Error(`AppLovin API returned code ${json.code}`);
+  const metricsJson = await metricsRes.json();
+  if (metricsJson.code !== 200) {
+    throw new Error(`AppLovin API returned code ${metricsJson.code}`);
   }
-  
-  // Filter for our target campaign and aggregate by creative_set_id
-  const campaignResults = (json.results || []).filter(
+
+  // --- Process metrics (aggregated, no day breakdown) ---
+  const campaignResults = (metricsJson.results || []).filter(
     (r: any) => r.campaign === CAMPAIGN_NAME
   );
   
-  // Aggregate by creative_set_id (data may have multiple rows per creative if date breakdown)
-  const byId = new Map<string, any>();
-  for (const row of campaignResults) {
-    const id = row.creative_set_id;
-    if (!byId.has(id)) {
-      byId.set(id, {
-        creative_set: row.creative_set,
-        creative_set_id: id,
-        impressions: 0,
-        clicks: 0,
-        installs: 0,
-        cost: 0,
-        roas_3d_sum: 0,
-        roas_3d_count: 0,
-        sales_3d: 0,
-        ctr_sum: 0,
-        ctr_count: 0,
-        test_date: row.day || '',
-      });
-    }
-    const agg = byId.get(id)!;
-    agg.impressions += parseFloat(row.impressions) || 0;
-    agg.clicks += parseFloat(row.clicks) || 0;
-    agg.installs += parseFloat(row.conversions) || 0;
-    agg.cost += parseFloat(row.cost) || 0;
-    agg.sales_3d += parseFloat(row.sales_3d) || 0;
-    // Track earliest date
-    if (row.day && (!agg.test_date || row.day < agg.test_date)) {
-      agg.test_date = row.day;
-    }
-    // For ROAS, we weight average by cost
-    const rowCost = parseFloat(row.cost) || 0;
-    const rowRoas = parseFloat(row.roas_3d) || 0;
-    if (rowCost > 0) {
-      agg.roas_3d_sum += rowRoas * rowCost;
-      agg.roas_3d_count += rowCost;
-    }
-  }
-  
-  const ads: AppLovinCreativeSet[] = Array.from(byId.values()).map((agg) => {
-    const impressions = agg.impressions;
-    const installs = agg.installs;
-    const cost = agg.cost;
-    const roas_3d = agg.roas_3d_count > 0 ? agg.roas_3d_sum / agg.roas_3d_count : 0;
-    const ctr = impressions > 0 ? (agg.clicks / impressions) * 100 : 0;
+  const ads: AppLovinCreativeSet[] = campaignResults.map((row: any) => {
+    const impressions = parseFloat(row.impressions) || 0;
+    const clicks = parseFloat(row.clicks) || 0;
+    const installs = parseFloat(row.conversions) || 0;
+    const cost = parseFloat(row.cost) || 0;
+    const roas_3d = parseFloat(row.roas_3d) || 0;
+    const sales_3d = parseFloat(row.sales_3d) || 0;
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     const cpi = installs > 0 ? cost / installs : 0;
     const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0;
-    const buyer_rate = installs > 0 ? (agg.sales_3d / installs) * 100 : 0;
+    const buyer_rate = installs > 0 ? (sales_3d / installs) * 100 : 0;
     const ir = impressions > 0 ? (installs / impressions) * 1000 : 0;
-    
+
     return {
-      creative_set: agg.creative_set,
-      creative_set_id: agg.creative_set_id,
+      creative_set: row.creative_set,
+      creative_set_id: row.creative_set_id,
       impressions,
-      clicks: agg.clicks,
+      clicks,
       installs,
       cost,
       roas_3d,
-      sales_3d: agg.sales_3d,
+      sales_3d,
       ctr,
       cpi,
       cpm,
       buyer_rate,
       ir,
-      test_date: agg.test_date || '',
+      test_date: '', // will be filled from date call
     };
   });
+
+  // --- Process test dates (daily breakdown) ---
+  try {
+    if (dateRes.ok) {
+      const dateJson = await dateRes.json();
+      if (dateJson.code === 200) {
+        const dateResults = (dateJson.results || []).filter(
+          (r: any) => r.campaign === CAMPAIGN_NAME
+        );
+        
+        // Find earliest date per creative_set_id
+        const testDates = new Map<string, string>();
+        for (const row of dateResults) {
+          const id = row.creative_set_id;
+          const day = row.day || '';
+          if (day && (!testDates.has(id) || day < testDates.get(id)!)) {
+            testDates.set(id, day);
+          }
+        }
+        
+        // Merge test_date into ads
+        for (const ad of ads) {
+          ad.test_date = testDates.get(ad.creative_set_id) || '';
+        }
+      }
+    }
+  } catch {
+    // test_date is non-critical, ignore errors
+  }
   
   return { campaign: CAMPAIGN_NAME, ads };
 }
