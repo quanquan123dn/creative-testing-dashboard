@@ -12,6 +12,7 @@ interface NotifiedAlerts {
   video_winners: string[];    // Layer 1 Video winners already notified
   pla_10k: string[];          // Unity PLA creatives that hit 10k impressions
   applovin_10p: string[];     // AppLovin PLA creatives that hit 10 purchasers
+  batch_complete_notified: boolean; // Whether "batch complete" alert was sent
   last_checked: string;
   last_notified: string | null;
 }
@@ -46,6 +47,9 @@ export async function GET(request: Request) {
     // === LAYER 1 VIDEO: Check Winners ===
     let videoWinners: AlertCreative[] = [];
     let totalVideoAds = 0;
+    let videoWatchingCount = 0;
+    let videoNewCount = 0;
+    let videoKillCount = 0;
     
     try {
       const { ads: metaAds } = await getAllAdInsights('last_14d');
@@ -70,6 +74,12 @@ export async function GET(request: Request) {
             installs: ad.installs || 0,
             impressions: ad.impressions || 0,
           });
+        } else if (result.decision === 'watching') {
+          videoWatchingCount++;
+        } else if (result.decision === 'kill') {
+          videoKillCount++;
+        } else {
+          videoNewCount++;
         }
       }
     } catch (e) {
@@ -128,6 +138,7 @@ export async function GET(request: Request) {
     let prevVideoWinners: string[] = [];
     let prevPla10k: string[] = [];
     let prevApplovin10p: string[] = [];
+    let prevBatchCompleteNotified = false;
     try {
       const { blobs } = await list({ prefix: 'notified-alerts' });
       if (blobs.length > 0) {
@@ -139,6 +150,7 @@ export async function GET(request: Request) {
         prevVideoWinners = data.video_winners || [];
         prevPla10k = data.pla_10k || [];
         prevApplovin10p = data.applovin_10p || [];
+        prevBatchCompleteNotified = data.batch_complete_notified || false;
       }
     } catch {
       // First run
@@ -149,12 +161,21 @@ export async function GET(request: Request) {
     const newPla10k = pla10k.filter(p => !prevPla10k.includes(p.name));
     const newApplovin10p = applovin10p.filter(a => !prevApplovin10p.includes(a.name));
 
+    // === Check batch complete (Layer 1 Video) ===
+    const allVideoDecided = totalVideoAds > 0 && videoWatchingCount === 0 && videoNewCount === 0;
+    const batchCompleteIsNew = allVideoDecided && !prevBatchCompleteNotified;
+
     // === Send Discord ===
     let notificationSent = false;
     let discordError: string | null = null;
-    if ((newVideoWinners.length > 0 || newPla10k.length > 0 || newApplovin10p.length > 0) && DISCORD_WEBHOOK_URL) {
+    const hasNewAlerts = newVideoWinners.length > 0 || newPla10k.length > 0 || newApplovin10p.length > 0 || batchCompleteIsNew;
+    if (hasNewAlerts && DISCORD_WEBHOOK_URL) {
       try {
-        await sendDiscordNotification(newVideoWinners, newPla10k, newApplovin10p, videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds, applovin10p.length, totalAppLovinAds);
+        await sendDiscordNotification(
+          newVideoWinners, newPla10k, newApplovin10p,
+          videoWinners.length, totalVideoAds, pla10k.length, totalPLAAds, applovin10p.length, totalAppLovinAds,
+          batchCompleteIsNew ? { winners: videoWinners.length, kills: videoKillCount, total: totalVideoAds } : null
+        );
         notificationSent = true;
       } catch (e) {
         discordError = e instanceof Error ? e.message : 'Unknown Discord error';
@@ -167,6 +188,7 @@ export async function GET(request: Request) {
       video_winners: videoWinners.map(w => w.name),
       pla_10k: pla10k.map(p => p.name),
       applovin_10p: applovin10p.map(a => a.name),
+      batch_complete_notified: allVideoDecided && (prevBatchCompleteNotified || batchCompleteIsNew),
       last_checked: new Date().toISOString(),
       last_notified: notificationSent ? new Date().toISOString() : null,
     };
@@ -187,7 +209,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      video: { total: totalVideoAds, winners: videoWinners.length, new_winners: newVideoWinners.length },
+      video: { total: totalVideoAds, winners: videoWinners.length, watching: videoWatchingCount, new_ads: videoNewCount, kills: videoKillCount, new_winners: newVideoWinners.length, batch_complete: allVideoDecided, batch_complete_is_new: batchCompleteIsNew },
       pla_unity: { total: totalPLAAds, reached_10k: pla10k.length, new_10k: newPla10k.length },
       pla_applovin: { total: totalAppLovinAds, reached_10p: applovin10p.length, new_10p: newApplovin10p.length },
       notification_sent: notificationSent,
@@ -218,6 +240,7 @@ async function sendDiscordNotification(
   totalPLAAds: number,
   totalApplovin10p: number,
   totalAppLovinAds: number,
+  batchComplete: { winners: number; kills: number; total: number } | null = null,
 ) {
   const embeds: any[] = [];
 
@@ -271,6 +294,19 @@ async function sendDiscordNotification(
       fields: [
         { name: '📋 Creatives đủ data', value: alList, inline: false },
         { name: '📊 Summary', value: `Total ≥10 purchasers: **${totalApplovin10p}/${totalAppLovinAds}** creatives`, inline: false },
+      ],
+    });
+  }
+
+  // Batch complete embed
+  if (batchComplete) {
+    embeds.push({
+      title: '📢 Layer 1 Video — Lô Test Xong!',
+      description: 'Tất cả creative trong lô hiện tại đã có kết quả. Sẵn sàng lên **lô test mới**!',
+      color: 0x3b82f6,
+      fields: [
+        { name: '📊 Kết quả lô', value: `🏆 Đạt: **${batchComplete.winners}**\n❌ Fail: **${batchComplete.kills}**\n📋 Tổng: **${batchComplete.total}** creatives`, inline: false },
+        { name: '⚡ Action', value: 'Hãy chuẩn bị lô creative mới để test tiếp!', inline: false },
       ],
     });
   }
