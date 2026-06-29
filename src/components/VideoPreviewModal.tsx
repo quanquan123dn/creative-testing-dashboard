@@ -180,7 +180,7 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
                 minHeight: isStory ? '580px' : '480px',
                 background: '#fff',
               }}
-              sandbox="allow-scripts allow-same-origin allow-popups"
+              allow="autoplay; encrypted-media"
               title="Ad Preview"
             />
           ) : null}
