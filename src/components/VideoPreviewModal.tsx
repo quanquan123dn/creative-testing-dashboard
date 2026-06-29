@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Smartphone, Monitor } from 'lucide-react';
 
 interface VideoPreviewModalProps {
@@ -14,11 +14,10 @@ interface VideoPreviewModalProps {
 type PreviewFormat = 'MOBILE_FEED_STANDARD' | 'INSTAGRAM_STORY';
 
 export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
-  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<PreviewFormat>('MOBILE_FEED_STANDARD');
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!adId) {
@@ -29,19 +28,21 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
 
     setLoading(true);
     setError(null);
+    setPreviewHtml(null);
 
     const fetchPreview = async () => {
       try {
         const res = await fetch(`/api/video?ad_id=${adId}&format=${format}`);
         const data = await res.json();
         if (data.preview_html) {
-          // Extract iframe src from the preview HTML
-          const srcMatch = data.preview_html.match(/src="([^"]+)"/);
-          if (srcMatch) {
-            setIframeSrc(srcMatch[1]);
-          } else {
-            setError('Could not parse preview');
-          }
+          // Modify the iframe HTML: make it full size and remove width/height constraints
+          let html = data.preview_html;
+          // Fix iframe dimensions
+          html = html.replace(/width="\d+"/, 'width="100%"');
+          html = html.replace(/height="\d+"/, 'height="100%"');
+          // Add style to make it fill container
+          html = html.replace('<iframe', '<iframe style="border:none;width:100%;height:100%;min-height:500px;"');
+          setPreviewHtml(html);
         } else {
           setError(data.error || 'Preview not available');
         }
@@ -73,7 +74,6 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
       onClick={onClose}
     >
       <div
-        ref={containerRef}
         className="relative flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -144,11 +144,11 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
           className="relative flex-1 overflow-hidden"
           style={{ 
             minHeight: isStory ? '580px' : '480px',
-            background: '#000',
+            background: '#f0f0f0',
           }}
         >
           {loading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: '#0d1117' }}>
               {thumbnailUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img 
@@ -168,20 +168,15 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
               </div>
             </div>
           ) : error ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6" style={{ background: '#0d1117' }}>
               <div className="text-3xl">😕</div>
               <span className="text-sm text-slate-400 text-center">{error}</span>
             </div>
-          ) : iframeSrc ? (
-            <iframe
-              src={iframeSrc}
-              className="w-full h-full border-0"
-              style={{ 
-                minHeight: isStory ? '580px' : '480px',
-                background: '#fff',
-              }}
-              allow="autoplay; encrypted-media"
-              title="Ad Preview"
+          ) : previewHtml ? (
+            <div 
+              className="w-full h-full"
+              style={{ minHeight: isStory ? '580px' : '480px' }}
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           ) : null}
         </div>
