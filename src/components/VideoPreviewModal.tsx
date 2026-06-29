@@ -5,12 +5,13 @@ import { X, Play, Loader2, Volume2, VolumeX } from 'lucide-react';
 
 interface VideoPreviewModalProps {
   videoId: string | null;
+  adId: string;
   thumbnailUrl: string;
   adName: string;
   onClose: () => void;
 }
 
-export default function VideoPreviewModal({ videoId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
+export default function VideoPreviewModal({ videoId, adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,10 @@ export default function VideoPreviewModal({ videoId, thumbnailUrl, adName, onClo
 
     const fetchVideo = async () => {
       try {
-        const res = await fetch(`/api/video?id=${videoId}`);
+        const params = new URLSearchParams();
+        if (videoId) params.set('id', videoId);
+        if (adId) params.set('ad_id', adId);
+        const res = await fetch(`/api/video?${params.toString()}`);
         const data = await res.json();
         if (data.video_url) {
           setVideoUrl(data.video_url);

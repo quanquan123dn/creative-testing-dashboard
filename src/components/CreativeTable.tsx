@@ -405,6 +405,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       {previewAd && (
         <VideoPreviewModal
           videoId={previewAd.video_id}
+          adId={previewAd.ad_id}
           thumbnailUrl={previewAd.thumbnail_url}
           adName={previewAd.ad_name}
           onClose={() => setPreviewAd(null)}
