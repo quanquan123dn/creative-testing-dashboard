@@ -5,6 +5,7 @@ const BASE_URL = 'https://graph.facebook.com/v19.0';
 
 export async function GET(request: NextRequest) {
   const adId = request.nextUrl.searchParams.get('ad_id');
+  const format = request.nextUrl.searchParams.get('format') || 'MOBILE_FEED_STANDARD';
   
   if (!adId) {
     return NextResponse.json({ error: 'Missing ad_id' }, { status: 400 });
@@ -15,8 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Use Ad Preview API - works with marketing API permissions
-    const url = `${BASE_URL}/${adId}/previews?ad_format=MOBILE_FEED_STANDARD&access_token=${ACCESS_TOKEN}`;
+    const url = `${BASE_URL}/${adId}/previews?ad_format=${format}&access_token=${ACCESS_TOKEN}`;
     const res = await fetch(url, { next: { revalidate: 0 } });
     
     if (!res.ok) {
