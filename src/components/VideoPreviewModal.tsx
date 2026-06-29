@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, Play, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
 
 interface VideoPreviewModalProps {
   videoId: string | null;
@@ -11,41 +11,36 @@ interface VideoPreviewModalProps {
   onClose: () => void;
 }
 
-export default function VideoPreviewModal({ videoId, adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [muted, setMuted] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (!videoId) {
-      setError('No video ID available');
+    if (!adId) {
+      setError('No ad ID available');
       setLoading(false);
       return;
     }
 
-    const fetchVideo = async () => {
+    const fetchPreview = async () => {
       try {
-        const params = new URLSearchParams();
-        if (videoId) params.set('id', videoId);
-        if (adId) params.set('ad_id', adId);
-        const res = await fetch(`/api/video?${params.toString()}`);
+        const res = await fetch(`/api/video?ad_id=${adId}`);
         const data = await res.json();
-        if (data.video_url) {
-          setVideoUrl(data.video_url);
+        if (data.preview_html) {
+          setPreviewHtml(data.preview_html);
         } else {
-          setError('Video URL not available');
+          setError(data.error || 'Preview not available');
         }
       } catch {
-        setError('Failed to load video');
+        setError('Failed to load preview');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVideo();
-  }, [videoId]);
+    fetchPreview();
+  }, [adId]);
 
   // Close on Escape key
   useEffect(() => {
@@ -89,53 +84,40 @@ export default function VideoPreviewModal({ videoId, adId, thumbnailUrl, adName,
           </button>
         </div>
 
-        {/* Video content */}
-        <div className="relative" style={{ aspectRatio: '9/16', maxHeight: '70vh' }}>
+        {/* Preview content */}
+        <div className="relative" style={{ minHeight: '400px', maxHeight: '75vh', overflow: 'auto' }}>
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <Loader2 size={32} className="text-purple-400 animate-spin" />
-              <span className="text-xs text-slate-400">Loading video...</span>
+              <span className="text-xs text-slate-400">Loading preview...</span>
             </div>
           ) : error ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+            <div className="flex flex-col items-center justify-center gap-3 py-12 px-6">
               {thumbnailUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumbnailUrl} alt={adName} className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                <img src={thumbnailUrl} alt={adName} className="w-32 h-32 object-cover rounded-lg opacity-50" />
               )}
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <Play size={40} className="text-slate-500" />
-                <span className="text-xs text-slate-400 text-center">{error}</span>
-              </div>
+              <span className="text-xs text-slate-400 text-center">{error}</span>
             </div>
-          ) : videoUrl ? (
-            <>
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                autoPlay
-                loop
-                muted={muted}
-                playsInline
-                className="w-full h-full object-contain"
-                style={{ background: '#000' }}
-              />
-              {/* Mute toggle */}
-              <button
-                onClick={() => setMuted(!muted)}
-                className="absolute bottom-3 right-3 p-2 rounded-full transition-all"
-                style={{
-                  background: 'rgba(0,0,0,0.6)',
-                  backdropFilter: 'blur(4px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+          ) : previewHtml ? (
+            <div 
+              className="w-full"
+              style={{ 
+                background: '#fff',
+                minHeight: '400px',
+              }}
+            >
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full border-0"
+                style={{ 
+                  minHeight: '500px',
+                  height: '65vh',
                 }}
-              >
-                {muted ? (
-                  <VolumeX size={16} className="text-white" />
-                ) : (
-                  <Volume2 size={16} className="text-white" />
-                )}
-              </button>
-            </>
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                title="Ad Preview"
+              />
+            </div>
           ) : null}
         </div>
       </div>
