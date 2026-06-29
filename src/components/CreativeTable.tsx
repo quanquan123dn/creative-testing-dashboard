@@ -6,6 +6,7 @@ import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
 import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle } from 'lucide-react';
 import Image from 'next/image';
 import { extractCreativeCode } from '@/lib/utils';
+import VideoPreviewModal from './VideoPreviewModal';
 
 interface CreativeTableProps {
   ads: EnrichedAd[];
@@ -95,6 +96,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
   const [filterL2Status, setFilterL2Status] = useState<string>('all');
+  const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
 
   const maxIPM = useMemo(() => Math.max(...ads.map(a => a.ipm), config.ipm_winner * 1.5), [ads, config.ipm_winner]);
 
@@ -296,7 +298,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                   {/* Creative preview + name */}
                   <td>
                     <div className="flex items-center gap-3">
-                      <div className="thumbnail-container">
+                      <div className="thumbnail-container" style={{ cursor: ad.video_id ? 'pointer' : 'default' }} onClick={() => { if (ad.video_id) setPreviewAd(ad); }}>
                         {ad.thumbnail_url ? (
                           <>
                             <Image
@@ -397,6 +399,16 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           Showing {filtered.length} of {ads.length} creatives
           {filterDecision !== 'all' || filterL2Status !== 'all' ? ' (filtered)' : ''}
         </div>
+      )}
+
+      {/* Video Preview Modal */}
+      {previewAd && (
+        <VideoPreviewModal
+          videoId={previewAd.video_id}
+          thumbnailUrl={previewAd.thumbnail_url}
+          adName={previewAd.ad_name}
+          onClose={() => setPreviewAd(null)}
+        />
       )}
     </div>
   );
