@@ -110,31 +110,7 @@ export default function VideoPreviewModal({ videoId, adId, thumbnailUrl, adName,
             </div>
           </div>
           
-          {/* Mode switcher */}
-          <div className="flex items-center gap-1 mr-3">
-            <button
-              onClick={() => setMode('embed')}
-              className="px-2 py-1 rounded-md text-[10px] font-medium transition-all"
-              style={{
-                background: mode === 'embed' ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
-                color: mode === 'embed' ? '#c4b5fd' : '#64748b',
-                border: `1px solid ${mode === 'embed' ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
-              }}
-            >
-              Video
-            </button>
-            <button
-              onClick={() => setMode('preview')}
-              className="px-2 py-1 rounded-md text-[10px] font-medium transition-all"
-              style={{
-                background: mode === 'preview' ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
-                color: mode === 'preview' ? '#c4b5fd' : '#64748b',
-                border: `1px solid ${mode === 'preview' ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
-              }}
-            >
-              Full Ad
-            </button>
-          </div>
+
 
           <button
             onClick={onClose}
