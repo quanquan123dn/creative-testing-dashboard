@@ -178,7 +178,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
             filtered.map(ad => ({
               creative: ad.ad_name,
               decision: ad.decision_result.label,
-              l2_status: ad.l2_status || '',
+              l2_status: ad.layer2_status || '',
               spend: ad.spend,
               impressions: ad.impressions,
               installs: ad.installs,
