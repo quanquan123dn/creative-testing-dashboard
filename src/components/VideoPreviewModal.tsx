@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Smartphone, Monitor } from 'lucide-react';
+import { X, Loader2, ExternalLink } from 'lucide-react';
 
 interface VideoPreviewModalProps {
   videoId: string | null;
@@ -11,50 +11,62 @@ interface VideoPreviewModalProps {
   onClose: () => void;
 }
 
-type PreviewFormat = 'MOBILE_FEED_STANDARD' | 'INSTAGRAM_STORY';
-
-export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+export default function VideoPreviewModal({ videoId, adId, thumbnailUrl, adName, onClose }: VideoPreviewModalProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [format, setFormat] = useState<PreviewFormat>('MOBILE_FEED_STANDARD');
+  const [mode, setMode] = useState<'embed' | 'preview'>('embed');
 
   useEffect(() => {
-    if (!adId) {
-      setError('No ad ID available');
+    if (!videoId && !adId) {
+      setError('No video data available');
       setLoading(false);
       return;
     }
 
+    // Try Facebook video embed first (clean video only)
+    if (videoId) {
+      const embedUrl = `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch/?v=${videoId}&show_text=false&autoplay=true&mute=0`;
+      setPreviewUrl(embedUrl);
+      setLoading(false);
+    } else {
+      setError('No video ID');
+      setLoading(false);
+    }
+  }, [videoId, adId]);
+
+  // Fallback to Ad Preview
+  useEffect(() => {
+    if (mode !== 'preview' || !adId) return;
+    
     setLoading(true);
     setError(null);
-    setPreviewHtml(null);
 
     const fetchPreview = async () => {
       try {
-        const res = await fetch(`/api/video?ad_id=${adId}&format=${format}`);
+        const res = await fetch(`/api/video?ad_id=${adId}&format=MOBILE_FEED_STANDARD`);
         const data = await res.json();
         if (data.preview_html) {
-          // Modify the iframe HTML: make it full size and remove width/height constraints
           let html = data.preview_html;
-          // Fix iframe dimensions
           html = html.replace(/width="\d+"/, 'width="100%"');
           html = html.replace(/height="\d+"/, 'height="100%"');
-          // Add style to make it fill container
           html = html.replace('<iframe', '<iframe style="border:none;width:100%;height:100%;min-height:500px;"');
-          setPreviewHtml(html);
+          setPreviewUrl(null);
+          setError(null);
+          // Store HTML in a data attribute approach
+          const container = document.getElementById('preview-container');
+          if (container) container.innerHTML = html;
         } else {
-          setError(data.error || 'Preview not available');
+          setError('Preview not available');
         }
       } catch {
-        setError('Failed to load preview');
+        setError('Failed to load');
       } finally {
         setLoading(false);
       }
     };
-
     fetchPreview();
-  }, [adId, format]);
+  }, [mode, adId]);
 
   // Close on Escape key
   useEffect(() => {
@@ -65,19 +77,17 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const isStory = format === 'INSTAGRAM_STORY';
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)' }}
+      style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)' }}
       onClick={onClose}
     >
       <div
         className="relative flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: isStory ? '360px' : '420px',
+          width: '400px',
           maxHeight: '90vh',
           background: 'linear-gradient(145deg, #1a1f35 0%, #0d1117 100%)',
           borderRadius: '20px',
@@ -98,32 +108,31 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
             <div className="text-sm font-semibold text-slate-100 truncate" title={adName}>
               🎬 {adName.replace(/^TSH\d+_/, '')}
             </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Ad Preview</div>
           </div>
           
-          {/* Format switcher */}
+          {/* Mode switcher */}
           <div className="flex items-center gap-1 mr-3">
             <button
-              onClick={() => setFormat('MOBILE_FEED_STANDARD')}
-              className="p-1.5 rounded-md transition-all"
-              title="Feed Preview"
+              onClick={() => setMode('embed')}
+              className="px-2 py-1 rounded-md text-[10px] font-medium transition-all"
               style={{
-                background: !isStory ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
-                border: `1px solid ${!isStory ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
+                background: mode === 'embed' ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
+                color: mode === 'embed' ? '#c4b5fd' : '#64748b',
+                border: `1px solid ${mode === 'embed' ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
               }}
             >
-              <Monitor size={14} className={!isStory ? 'text-purple-300' : 'text-slate-500'} />
+              Video
             </button>
             <button
-              onClick={() => setFormat('INSTAGRAM_STORY')}
-              className="p-1.5 rounded-md transition-all"
-              title="Story Preview"
+              onClick={() => setMode('preview')}
+              className="px-2 py-1 rounded-md text-[10px] font-medium transition-all"
               style={{
-                background: isStory ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
-                border: `1px solid ${isStory ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
+                background: mode === 'preview' ? 'rgba(139,92,246,0.25)' : 'rgba(148,163,184,0.1)',
+                color: mode === 'preview' ? '#c4b5fd' : '#64748b',
+                border: `1px solid ${mode === 'preview' ? 'rgba(139,92,246,0.4)' : 'transparent'}`,
               }}
             >
-              <Smartphone size={14} className={isStory ? 'text-purple-300' : 'text-slate-500'} />
+              Full Ad
             </button>
           </div>
 
@@ -142,13 +151,14 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
         {/* Preview content */}
         <div 
           className="relative flex-1 overflow-hidden"
+          id="preview-container"
           style={{ 
-            minHeight: isStory ? '580px' : '480px',
-            background: '#f0f0f0',
+            minHeight: '500px',
+            background: '#000',
           }}
         >
           {loading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: '#0d1117' }}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               {thumbnailUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img 
@@ -164,24 +174,56 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
                 >
                   <Loader2 size={28} className="text-purple-400 animate-spin" />
                 </div>
-                <span className="text-xs text-slate-400 font-medium">Loading preview...</span>
+                <span className="text-xs text-slate-400 font-medium">Loading...</span>
               </div>
             </div>
           ) : error ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6" style={{ background: '#0d1117' }}>
-              <div className="text-3xl">😕</div>
-              <span className="text-sm text-slate-400 text-center">{error}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
+              {thumbnailUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={thumbnailUrl} 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-30"
+                />
+              )}
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="text-2xl">🎬</div>
+                <span className="text-xs text-slate-400 text-center">{error}</span>
+                {videoId && (
+                  <a
+                    href={`https://www.facebook.com/watch/?v=${videoId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: 'rgba(59,130,246,0.2)',
+                      color: '#93c5fd',
+                      border: '1px solid rgba(59,130,246,0.3)',
+                    }}
+                  >
+                    <ExternalLink size={12} />
+                    Open on Facebook
+                  </a>
+                )}
+              </div>
             </div>
-          ) : previewHtml ? (
-            <div 
-              className="w-full h-full"
-              style={{ minHeight: isStory ? '580px' : '480px' }}
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
+          ) : previewUrl && mode === 'embed' ? (
+            <iframe
+              src={previewUrl}
+              className="w-full border-0"
+              style={{ 
+                minHeight: '500px',
+                height: '65vh',
+                background: '#000',
+              }}
+              allow="autoplay; encrypted-media; fullscreen"
+              title="Video Preview"
             />
           ) : null}
         </div>
 
-        {/* Footer hint */}
+        {/* Footer */}
         <div 
           className="px-4 py-2 text-center shrink-0"
           style={{ 
@@ -190,7 +232,7 @@ export default function VideoPreviewModal({ adId, thumbnailUrl, adName, onClose 
           }}
         >
           <span className="text-[10px] text-slate-500">
-            Click outside or press ESC to close • Switch 📱/🖥 for different views
+            Press ESC to close
           </span>
         </div>
       </div>
