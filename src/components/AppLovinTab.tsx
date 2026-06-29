@@ -5,6 +5,7 @@ import { AppLovinCreativeSet } from '@/lib/applovin-api';
 import { scoreAppLovinCreative, APPLOVIN_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Banknote, AlertCircle, XCircle, Clock } from 'lucide-react';
+import { exportToCSV } from '@/lib/export';
 
 interface EnrichedAppLovinAd extends AppLovinCreativeSet {
   decision_result: AppLovinDecisionResult;
@@ -238,7 +239,54 @@ export default function AppLovinTab() {
               {loading ? '⏳ Syncing...' : '🔄 Sync'}
             </button>
           </div>
-          <div className="text-xs" style={{ color: '#64748b' }}>Last 45 days (API limit)</div>
+          <div className="flex items-center gap-3">
+            <div className="text-xs" style={{ color: '#64748b' }}>Last 45 days (API limit)</div>
+            <button
+              onClick={() => exportToCSV(
+                ads.map(a => ({
+                  creative: a.creative_set,
+                  decision: a.decision_result.label,
+                  cost: a.cost,
+                  impressions: a.impressions,
+                  installs: a.installs,
+                  roas_3d: a.roas_3d,
+                  sales_3d: a.sales_3d,
+                  buyer_rate: a.buyer_rate,
+                  ctr: a.ctr,
+                  ir: a.ir,
+                  cpm: a.cpm,
+                  cpi: a.cpi,
+                  test_date: a.test_date || '',
+                })),
+                [
+                  { key: 'creative', label: 'Creative Set' },
+                  { key: 'decision', label: 'Decision' },
+                  { key: 'cost', label: 'Cost' },
+                  { key: 'impressions', label: 'Impressions' },
+                  { key: 'installs', label: 'Installs' },
+                  { key: 'roas_3d', label: 'ROAS 3D' },
+                  { key: 'sales_3d', label: 'Sales 3D' },
+                  { key: 'buyer_rate', label: 'Buyer Rate' },
+                  { key: 'ctr', label: 'CTR' },
+                  { key: 'ir', label: 'IR' },
+                  { key: 'cpm', label: 'CPM' },
+                  { key: 'cpi', label: 'CPI' },
+                  { key: 'test_date', label: 'Test Date' },
+                ],
+                'layer2_applovin'
+              )}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all hover:scale-105"
+              style={{
+                background: 'rgba(34,197,94,0.12)',
+                color: '#4ade80',
+                border: '1px solid rgba(34,197,94,0.25)',
+              }}
+              title="Export to CSV"
+            >
+              <Download size={13} />
+              Export
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { scoreAppLovinCreative, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCircle } from 'lucide-react';
+import { exportToCSV } from '@/lib/export';
 
 interface EnrichedAd {
   ad_name: string;
@@ -347,6 +348,49 @@ export default function Layer2VideoTab() {
               </span>
             )}
             <span className="text-xs" style={{ color: '#64748b' }}>Last 14 days (via AppsFlyer)</span>
+            <button
+              onClick={() => exportToCSV(
+                ads.map(a => ({
+                  creative: a.ad_name,
+                  decision: a.decision_result.label,
+                  cost: a.cost,
+                  impressions: a.impressions,
+                  installs: a.installs,
+                  roas: a.roas_3d,
+                  sales: a.sales_3d,
+                  buyer_rate: a.buyer_rate,
+                  ctr: a.ctr,
+                  cpm: a.cpm,
+                  cpi: a.cpi,
+                  test_date: a.test_date || '',
+                })),
+                [
+                  { key: 'creative', label: 'Creative' },
+                  { key: 'decision', label: 'Decision' },
+                  { key: 'cost', label: 'Cost' },
+                  { key: 'impressions', label: 'Impressions' },
+                  { key: 'installs', label: 'Installs' },
+                  { key: 'roas', label: 'ROAS' },
+                  { key: 'sales', label: 'Sales' },
+                  { key: 'buyer_rate', label: 'Buyer Rate' },
+                  { key: 'ctr', label: 'CTR' },
+                  { key: 'cpm', label: 'CPM' },
+                  { key: 'cpi', label: 'CPI' },
+                  { key: 'test_date', label: 'Test Date' },
+                ],
+                'layer2_video'
+              )}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all hover:scale-105"
+              style={{
+                background: 'rgba(34,197,94,0.12)',
+                color: '#4ade80',
+                border: '1px solid rgba(34,197,94,0.25)',
+              }}
+              title="Export to CSV"
+            >
+              <Download size={13} />
+              Export
+            </button>
           </div>
         </div>
 

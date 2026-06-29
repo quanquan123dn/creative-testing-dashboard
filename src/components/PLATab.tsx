@@ -6,6 +6,7 @@ import { scorePLACreative, PLA_DEFAULT_CONFIG, PLADecisionConfig, PLADecisionRes
 import LeaderboardSection from '@/components/LeaderboardSection';
 import { extractCreativeCode } from '@/lib/utils';
 import { DollarSign, Download, Trophy, Smartphone, Target } from 'lucide-react';
+import { exportToCSV } from '@/lib/export';
 
 interface EnrichedPLA extends UnityCreativeStat {
   decision_result: PLADecisionResult;
@@ -253,7 +254,50 @@ export default function PLATab() {
               </span>
             )}
           </div>
-          <div className="text-xs" style={{ color: '#64748b' }}>All time (since campaign start)</div>
+          <div className="flex items-center gap-3">
+            <div className="text-xs" style={{ color: '#64748b' }}>All time (since campaign start)</div>
+            <button
+              onClick={() => exportToCSV(
+                ads.map(a => ({
+                  creative: a.creative_pack_name,
+                  decision: a.decision_result.label,
+                  spend: a.spend,
+                  impressions: a.starts,
+                  installs: a.installs,
+                  ipm: a.ipm,
+                  ctr: a.ctr,
+                  cvr: a.cvr,
+                  cpm: a.cpm,
+                  cpi: a.cpi,
+                  test_date: a.test_date || '',
+                })),
+                [
+                  { key: 'creative', label: 'Creative' },
+                  { key: 'decision', label: 'Decision' },
+                  { key: 'spend', label: 'Spend' },
+                  { key: 'impressions', label: 'Impressions' },
+                  { key: 'installs', label: 'Installs' },
+                  { key: 'ipm', label: 'IPM' },
+                  { key: 'ctr', label: 'CTR' },
+                  { key: 'cvr', label: 'CVR' },
+                  { key: 'cpm', label: 'CPM' },
+                  { key: 'cpi', label: 'CPI' },
+                  { key: 'test_date', label: 'Test Date' },
+                ],
+                'layer1_pla'
+              )}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all hover:scale-105"
+              style={{
+                background: 'rgba(34,197,94,0.12)',
+                color: '#4ade80',
+                border: '1px solid rgba(34,197,94,0.25)',
+              }}
+              title="Export to CSV"
+            >
+              <Download size={13} />
+              Export
+            </button>
+          </div>
         </div>
 
         {/* Table */}

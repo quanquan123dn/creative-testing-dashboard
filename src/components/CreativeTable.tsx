@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
-import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle, Download } from 'lucide-react';
 import Image from 'next/image';
 import { extractCreativeCode } from '@/lib/utils';
 import VideoPreviewModal from './VideoPreviewModal';
+import { exportToCSV } from '@/lib/export';
 
 interface CreativeTableProps {
   ads: EnrichedAd[];
@@ -172,6 +173,53 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       {/* Filters */}
       <div className="px-5 py-3 flex items-center gap-3 flex-wrap" style={{ borderBottom: '1px solid #1e2d4a' }}>
         <span className="text-xs" style={{ color: '#64748b' }}>Filter:</span>
+        <button
+          onClick={() => exportToCSV(
+            filtered.map(ad => ({
+              creative: ad.ad_name,
+              decision: ad.decision_result.label,
+              l2_status: ad.l2_status || '',
+              spend: ad.spend,
+              impressions: ad.impressions,
+              installs: ad.installs,
+              ipm: ad.ipm,
+              ctr: ad.ctr,
+              cvr: ad.cvr,
+              cpm: ad.cpm,
+              cpi: ad.cpi,
+              hook_rate: ad.hook_rate,
+              hold_rate: ad.hold_rate,
+              test_date: ad.test_date || '',
+            })),
+            [
+              { key: 'creative', label: 'Creative' },
+              { key: 'decision', label: 'Decision' },
+              { key: 'l2_status', label: 'L2 Status' },
+              { key: 'spend', label: 'Spend' },
+              { key: 'impressions', label: 'Impressions' },
+              { key: 'installs', label: 'Installs' },
+              { key: 'ipm', label: 'IPM' },
+              { key: 'ctr', label: 'CTR' },
+              { key: 'cvr', label: 'CVR' },
+              { key: 'cpm', label: 'CPM' },
+              { key: 'cpi', label: 'CPI' },
+              { key: 'hook_rate', label: 'Hook%' },
+              { key: 'hold_rate', label: 'Hold%' },
+              { key: 'test_date', label: 'Test Date' },
+            ],
+            'layer1_video'
+          )}
+          className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all hover:scale-105"
+          style={{
+            background: 'rgba(34,197,94,0.12)',
+            color: '#4ade80',
+            border: '1px solid rgba(34,197,94,0.25)',
+          }}
+          title="Export to CSV"
+        >
+          <Download size={13} />
+          Export
+        </button>
         <div className="flex gap-1" style={{ paddingRight: '1rem', borderRight: '1px solid #1e2d4a' }}>
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
             const labels: Record<FilterDecision, React.ReactNode> = {
