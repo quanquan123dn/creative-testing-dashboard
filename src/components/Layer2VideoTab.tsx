@@ -145,13 +145,14 @@ export default function Layer2VideoTab() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      // Append all selected files
+      Array.from(files).forEach(file => formData.append('file', file));
       
       const res = await fetch('/api/appsflyer-upload', {
         method: 'POST',
@@ -334,11 +335,11 @@ export default function Layer2VideoTab() {
               🔄 Sync
             </button>
             {/* Upload CSV button */}
-            <input type="file" ref={fileInputRef} accept=".csv,.tsv,.txt" onChange={handleUpload} className="hidden" />
+            <input type="file" ref={fileInputRef} accept=".csv,.tsv,.txt" onChange={handleUpload} className="hidden" multiple />
             <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
               style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa' }}>
-              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV</>}
+              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV (1-2 files)</>}
             </button>
           </div>
           <div className="flex items-center gap-3">
