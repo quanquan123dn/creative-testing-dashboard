@@ -9,7 +9,7 @@ export interface AppLovinCreativeSet {
   installs: number;    // from 'conversions' API column
   cost: number;
   roas_3d: number;
-  sales_3d: number;    // D3 unique purchasers
+  sales_3d: number;    // D3 unique purchasers (from buyers_3d API column)
   ctr: number;
   // Computed
   cpi: number;
@@ -29,7 +29,7 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
   const endStr = end.toISOString().split('T')[0];
   
   // === Call 1: Aggregated metrics (WITHOUT day) — accurate totals ===
-  const metricsColumns = 'campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,sales_3d,ctr';
+  const metricsColumns = 'campaign,creative_set,creative_set_id,impressions,clicks,conversions,cost,roas_3d,buyers_3d,ctr';
   const metricsUrl = `https://r.applovin.com/report?api_key=${APPLOVIN_REPORT_KEY}&report_type=advertiser&columns=${metricsColumns}&start=${startStr}&end=${endStr}&format=json`;
   
   // === Call 2: Daily breakdown (WITH day) — only for test_date ===
@@ -63,7 +63,7 @@ export async function getAppLovinCreativeStats(): Promise<{ campaign: string; ad
     const installs = parseFloat(row.conversions) || 0;
     const cost = parseFloat(row.cost) || 0;
     const roas_3d = parseFloat(row.roas_3d) || 0;
-    const sales_3d = parseFloat(row.sales_3d) || 0;
+    const sales_3d = parseFloat(row.buyers_3d) || 0;
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     const cpi = installs > 0 ? cost / installs : 0;
     const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0;
