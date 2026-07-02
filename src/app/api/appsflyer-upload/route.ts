@@ -34,8 +34,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No data found in any CSV file' }, { status: 400 });
     }
 
-    // Merge all files by adset_name
-    const merged = mergeByAdset(allParsed);
+    // Load existing stored data to merge with
+    let existingRows: AppsFlyerRow[] = [];
+    try {
+      const { blobs } = await list({ prefix: BLOB_PREFIX });
+      if (blobs.length > 0) {
+        const latestBlob = blobs.sort((a, b) =>
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        )[0];
+        const existingRes = await fetch(latestBlob.url);
+        const existingData = await existingRes.json();
+        existingRows = existingData.rows || [];
+      }
+    } catch {
+      // No existing data, start fresh
+    }
+
+    // Merge: existing data first (as base), then new uploads override/add on top
+    const toMerge: AppsFlyerRow[][] = [];
+    if (existingRows.length > 0) toMerge.push(existingRows);
+    toMerge.push(...allParsed);
+    const merged = mergeByAdset(toMerge);
 
     // Store as JSON blob
     const data = {
@@ -85,6 +104,22 @@ export async function GET() {
   } catch (error: unknown) {
     console.error('Read error:', error);
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Read failed' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE: Clear stored AppsFlyer data
+ */
+export async function DELETE() {
+  try {
+    const { blobs } = await list({ prefix: BLOB_PREFIX });
+    for (const blob of blobs) {
+      const { del } = await import('@vercel/blob');
+      await del(blob.url);
+    }
+    return NextResponse.json({ success: true, message: 'Data cleared' });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Clear failed' }, { status: 500 });
   }
 }
 

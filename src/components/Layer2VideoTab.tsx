@@ -83,13 +83,24 @@ export default function Layer2VideoTab() {
 
       const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
         const metaCode = extractCreativeCode(metaAd.ad_name);
+        const metaNameLower = metaAd.ad_name.toLowerCase();
         
-        // Match by creative code in adset_name
+        // Multi-strategy matching (priority order):
+        // 1. Exact creative code (PA0160 === PA0160)
+        // 2. Name substring match
+        // 3. All key words of AF name appear in Meta name
         const afMatch = afRows.find(r => {
           const afCode = extractCreativeCode(r.adset_name);
-          return afCode === metaCode;
+          const afNameLower = r.adset_name.toLowerCase();
+          if (metaCode && afCode && metaCode === afCode) return true;
+          if (metaNameLower.includes(afNameLower) || afNameLower.includes(metaNameLower)) return true;
+          if (afNameLower.length > 5) {
+            const afWords = afNameLower.split(/[\s_\-]+/).filter((w: string) => w.length > 3);
+            if (afWords.length > 0 && afWords.every((w: string) => metaNameLower.includes(w))) return true;
+          }
+          return false;
         });
-        
+
         const spend = metaAd.spend || 0;
         const impressions = metaAd.impressions || 0;
         const installs = metaAd.installs || 0;
@@ -100,6 +111,12 @@ export default function Layer2VideoTab() {
 
         const roas_d3 = afMatch ? afMatch.roas_d3 : 0;
         const buyer_rate_d3 = afMatch ? afMatch.buyer_rate_d3 : 0;
+
+        // Derive estimated purchasers from buyer_rate * installs
+        // If we have AF data, use buyer_rate_d3 * installs / 100 as proxy for D3 purchasers
+        const estimated_purchasers = afMatch && buyer_rate_d3 > 0 && installs > 0
+          ? Math.round((buyer_rate_d3 / 100) * installs)
+          : 0;
 
         return {
           ad_name: metaAd.ad_name,
@@ -112,7 +129,7 @@ export default function Layer2VideoTab() {
           cost: spend,
           revenue: 0,
           roi: roas_d3,
-          purchasers: 0,
+          purchasers: estimated_purchasers,
           purchase_revenue: 0,
           ctr,
           cpi,
@@ -129,7 +146,7 @@ export default function Layer2VideoTab() {
             spend,
             installs,
             cost: spend,
-            sales_3d: 0,
+            sales_3d: estimated_purchasers, // Use estimated purchasers for threshold check
           }, config),
         };
       });
@@ -170,6 +187,19 @@ export default function Layer2VideoTab() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!confirm('Xóa toàn bộ dữ liệu AppsFlyer đã upload?')) return;
+    try {
+      const res = await fetch('/api/appsflyer-upload', { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      alert('✅ Đã xóa dữ liệu AppsFlyer');
+      fetchData(true);
+    } catch (err: unknown) {
+      alert(`❌ Lỗi: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -347,6 +377,15 @@ export default function Layer2VideoTab() {
               <span className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
                 <CheckCircle size={12} /> {uploadInfo}
               </span>
+            )}
+            {uploadInfo && (
+              <button onClick={handleClearData}
+                className="px-2 py-1 rounded text-[10px] font-medium transition-all hover:scale-105"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+                title="Xóa dữ liệu AppsFlyer đã upload"
+              >
+                🗑️ Clear
+              </button>
             )}
             <span className="text-xs" style={{ color: '#64748b' }}>Last 14 days (via AppsFlyer)</span>
             <button
