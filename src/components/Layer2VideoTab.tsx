@@ -369,7 +369,7 @@ export default function Layer2VideoTab() {
             <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
               style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa' }}>
-              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV (1-2 files)</>}
+              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV</>}
             </button>
           </div>
           <div className="flex items-center gap-3">
