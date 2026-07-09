@@ -105,14 +105,11 @@ export async function GET() {
     console.warn('Blob read failed, trying local fallback:', error instanceof Error ? error.message : error);
   }
 
-  // Fallback: read from local JSON file
+  // Fallback: import bundled JSON data (works on Vercel serverless)
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'src', 'data', 'appsflyer-upload.json');
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(raw);
+    const localData = await import('@/data/appsflyer-upload.json');
+    const data = localData.default || localData;
+    if (data && data.rows && data.rows.length > 0) {
       return NextResponse.json({ success: true, data, source: 'local' });
     }
   } catch (e) {
