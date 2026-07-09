@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { scoreAppLovinCreative, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 import { extractCreativeCode } from '@/lib/utils';
-import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCircle, Play } from 'lucide-react';
 import { exportToCSV } from '@/lib/export';
+import VideoPreviewModal from './VideoPreviewModal';
+import Image from 'next/image';
 
 interface EnrichedAd {
   ad_name: string;
@@ -28,8 +30,12 @@ interface EnrichedAd {
   buyer_rate_d3: number;
   roas_d3: number;
   has_af_data: boolean;
+  video_id?: string;
+  thumbnail_url?: string;
   decision_result: AppLovinDecisionResult;
 }
+
+type StatusFilter = 'all' | 'winner' | 'watching' | 'fail' | 'new';
 
 type SortKey = 'ad_name' | 'test_date' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'roas_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
 
@@ -50,6 +56,8 @@ export default function Layer2VideoTab() {
   const [uploading, setUploading] = useState(false);
   const [uploadInfo, setUploadInfo] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
 
   const fetchData = useCallback(async (force = false) => {
     setLoading(true);
@@ -142,6 +150,8 @@ export default function Layer2VideoTab() {
           buyer_rate_d3,
           roas_d3,
           has_af_data: !!afMatch,
+          video_id: metaAd.video_id || '',
+          thumbnail_url: metaAd.thumbnail_url || '',
           // If adset is still ACTIVE → "Testing", if PAUSED → score Pass/Iterate/Fail
           decision_result: (metaAd.adset_status === 'ACTIVE')
             ? {
@@ -226,8 +236,13 @@ export default function Layer2VideoTab() {
     }
   };
 
+  const filteredAds = useMemo(() => {
+    if (statusFilter === 'all') return ads;
+    return ads.filter(a => a.decision_result.decision === statusFilter);
+  }, [ads, statusFilter]);
+
   const sortedAds = useMemo(() => {
-    return [...ads].sort((a, b) => {
+    return [...filteredAds].sort((a, b) => {
       const aVal = (a as any)[sortKey];
       const bVal = (b as any)[sortKey];
       if (typeof aVal === 'string') {
@@ -237,7 +252,16 @@ export default function Layer2VideoTab() {
       }
       return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
-  }, [ads, sortKey, sortDir]);
+  }, [filteredAds, sortKey, sortDir]);
+
+  const filterCounts = useMemo(() => {
+    const counts = { all: ads.length, winner: 0, watching: 0, fail: 0, new: 0 };
+    ads.forEach(a => {
+      const d = a.decision_result.decision;
+      if (d in counts) counts[d as keyof typeof counts]++;
+    });
+    return counts;
+  }, [ads]);
 
   const totalSpend = ads.reduce((s, a) => s + a.cost, 0);
   const totalInstalls = ads.reduce((s, a) => s + a.installs, 0);
@@ -386,6 +410,30 @@ export default function Layer2VideoTab() {
               {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV</>}
             </button>
           </div>
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs" style={{ color: '#64748b' }}>Filter:</span>
+            {([
+              { key: 'all' as StatusFilter, label: `All (${filterCounts.all})`, emoji: '' },
+              { key: 'new' as StatusFilter, label: `Testing (${filterCounts.new})`, emoji: '🧪' },
+              { key: 'winner' as StatusFilter, label: `Pass (${filterCounts.winner})`, emoji: '🏆' },
+              { key: 'watching' as StatusFilter, label: `Iterate (${filterCounts.watching})`, emoji: '⏳' },
+              { key: 'fail' as StatusFilter, label: `Fail (${filterCounts.fail})`, emoji: '❌' },
+            ]).map(f => {
+              const active = statusFilter === f.key;
+              return (
+                <button key={f.key} onClick={() => setStatusFilter(f.key)}
+                  className="px-2.5 py-1 rounded text-xs font-medium transition-all"
+                  style={{
+                    background: active ? 'rgba(59,130,246,0.15)' : 'transparent',
+                    border: `1px solid ${active ? 'rgba(59,130,246,0.4)' : '#1e2d4a'}`,
+                    color: active ? '#60a5fa' : '#64748b',
+                  }}>
+                  {f.emoji} {f.label}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex items-center gap-3">
             {uploadInfo && (
               <span className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
@@ -493,7 +541,19 @@ export default function Layer2VideoTab() {
                     >
                       <td className="px-3 py-3 text-xs" style={{ color: '#475569' }}>{idx + 1}</td>
                       <td className="px-3 py-3 text-left">
-                        <div className="font-medium text-slate-200 text-xs truncate" title={ad.ad_name}>{ad.ad_name}</div>
+                        <div className="flex items-center gap-2.5">
+                          <div className="thumbnail-container" style={{ cursor: ad.video_id ? 'pointer' : 'default', width: 40, height: 40, minWidth: 40, borderRadius: 6, overflow: 'hidden', position: 'relative' }} onClick={() => { if (ad.video_id) setPreviewAd(ad); }}>
+                            {ad.thumbnail_url ? (
+                              <>
+                                <Image src={ad.thumbnail_url} alt={ad.ad_name} width={40} height={40} className="object-cover" unoptimized style={{ width: '100%', height: '100%' }} />
+                                {ad.video_id && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', opacity: 0.7 }}><Play size={14} className="text-white" /></div>}
+                              </>
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1e2d4a', fontSize: 16 }}>🎬</div>
+                            )}
+                          </div>
+                          <div className="font-medium text-slate-200 text-xs truncate min-w-0" title={ad.ad_name}>{ad.ad_name}</div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-left text-xs" style={{ color: '#94a3b8' }}>
                         {ad.test_date ? new Date(ad.test_date).toLocaleDateString('vi-VN') : '-'}
@@ -501,18 +561,27 @@ export default function Layer2VideoTab() {
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{formatCurrency(ad.cost)}</td>
                       <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: '#e2e8f0' }}>{ad.installs.toLocaleString()}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.ipm.toFixed(2)}</td>
-                      <td className="px-3 py-3 text-right">
+                      {/* ROAS D3 — EMPHASIZED */}
+                      <td className="px-3 py-2 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
+                          <div className="w-14 h-2 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
                             <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(Math.abs(ad.roas_d3), 100)}%`, background: getRoiColor(ad.roas_d3) }} />
                           </div>
-                          <span className="text-xs font-bold" style={{ color: getRoiColor(ad.roi), minWidth: '45px', textAlign: 'right' }}>
+                          <span className="text-sm font-bold" style={{ color: getRoiColor(ad.roi), minWidth: '52px', textAlign: 'right' }}>
                             {ad.has_af_data ? `${ad.roi.toFixed(1)}%` : 'N/A'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right text-xs font-medium" style={{ color: ad.buyer_rate_d3 >= 5 ? '#10b981' : ad.buyer_rate_d3 >= 3 ? '#f59e0b' : '#94a3b8' }}>
-                        {ad.has_af_data ? (ad.buyer_rate_d3 > 0 ? `${ad.buyer_rate_d3.toFixed(1)}%` : '—') : 'N/A'}
+                      {/* Buyer Rate D3 — EMPHASIZED */}
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-14 h-2 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(ad.buyer_rate_d3 * 5, 100)}%`, background: ad.buyer_rate_d3 >= 9.5 ? '#10b981' : ad.buyer_rate_d3 >= 6 ? '#f59e0b' : '#ef4444' }} />
+                          </div>
+                          <span className="text-sm font-bold" style={{ color: ad.buyer_rate_d3 >= 9.5 ? '#10b981' : ad.buyer_rate_d3 >= 6 ? '#f59e0b' : ad.buyer_rate_d3 > 0 ? '#ef4444' : '#94a3b8', minWidth: '52px', textAlign: 'right' }}>
+                            {ad.has_af_data ? (ad.buyer_rate_d3 > 0 ? `${ad.buyer_rate_d3.toFixed(1)}%` : '—') : 'N/A'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.purchasers > 0 ? ad.purchasers : '\u2014') : 'N/A'}</td>
                       <td className="px-3 py-3 text-right text-xs" style={{ color: '#94a3b8' }}>{ad.has_af_data ? (ad.cpa > 0 ? formatCurrency(ad.cpa) : '\u2014') : 'N/A'}</td>
@@ -553,10 +622,21 @@ export default function Layer2VideoTab() {
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{ background: '#10b981' }} /><span style={{ color: '#94a3b8' }}>Pass ({winners})</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{ background: '#f59e0b' }} /><span style={{ color: '#94a3b8' }}>Iterate ({watching})</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{ background: '#ef4444' }} /><span style={{ color: '#94a3b8' }}>Fail ({fails})</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{ background: '#3b82f6' }} /><span style={{ color: '#94a3b8' }}>New ({total - winners - watching - fails})</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded" style={{ background: '#3b82f6' }} /><span style={{ color: '#94a3b8' }}>Testing ({total - winners - watching - fails})</span></div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Video Preview Modal */}
+      {previewAd && (
+        <VideoPreviewModal
+          videoId={previewAd.video_id || ''}
+          adId=""
+          adName={previewAd.ad_name}
+          thumbnailUrl={previewAd.thumbnail_url || ''}
+          onClose={() => setPreviewAd(null)}
+        />
       )}
     </div>
   );
