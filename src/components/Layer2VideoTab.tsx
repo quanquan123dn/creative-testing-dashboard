@@ -112,11 +112,13 @@ export default function Layer2VideoTab() {
         const roas_d3 = afMatch ? afMatch.roas_d3 : 0;
         const buyer_rate_d3 = afMatch ? afMatch.buyer_rate_d3 : 0;
 
-        // Derive estimated purchasers from buyer_rate * installs
-        // If we have AF data, use buyer_rate_d3 * installs / 100 as proxy for D3 purchasers
-        const estimated_purchasers = afMatch && buyer_rate_d3 > 0 && installs > 0
-          ? Math.round((buyer_rate_d3 / 100) * installs)
-          : 0;
+        // Use actual unique_purchasers_d3 from CSV if available, otherwise estimate
+        const actual_purchasers = afMatch?.unique_purchasers_d3 != null ? Number(afMatch.unique_purchasers_d3) : 0;
+        const estimated_purchasers = actual_purchasers > 0
+          ? actual_purchasers
+          : (afMatch && buyer_rate_d3 > 0 && installs > 0
+            ? Math.round((buyer_rate_d3 / 100) * installs)
+            : 0);
 
         return {
           ad_name: metaAd.ad_name,
@@ -146,7 +148,9 @@ export default function Layer2VideoTab() {
             spend,
             installs,
             cost: spend,
-            sales_3d: estimated_purchasers, // Use estimated purchasers for threshold check
+            // If we have AF CSV data, bypass min_purchasers threshold (creative already tested & turned off)
+            // Only show "New" when there's no AF data at all
+            sales_3d: afMatch ? 999 : 0,
           }, config),
         };
       });
