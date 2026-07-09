@@ -1,0 +1,574 @@
+﻿{
+    "uploaded_at":  "2026-07-09T13:56:34.1961843+07:00",
+    "filename":  "epic_stickman_creative_test_ROAS_BuyerRate_D3.csv",
+    "row_count":  63,
+    "rows":  [
+                 {
+                     "roas_d3":  75.37,
+                     "cost":  1056.36,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  11.01,
+                     "adset_name":  "VE0271",
+                     "unique_purchasers_d3":  24,
+                     "installs":  218
+                 },
+                 {
+                     "roas_d3":  63.4,
+                     "cost":  1264.39,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  10.12,
+                     "adset_name":  "VE0209",
+                     "unique_purchasers_d3":  17,
+                     "installs":  168
+                 },
+                 {
+                     "roas_d3":  61.65,
+                     "cost":  947.56,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  14.29,
+                     "adset_name":  "VE0266",
+                     "unique_purchasers_d3":  21,
+                     "installs":  147
+                 },
+                 {
+                     "roas_d3":  61.97,
+                     "cost":  806.42,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  12.2,
+                     "adset_name":  "VE0268",
+                     "unique_purchasers_d3":  15,
+                     "installs":  123
+                 },
+                 {
+                     "roas_d3":  53.09,
+                     "cost":  1237.04,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  10.74,
+                     "adset_name":  "VE0252",
+                     "unique_purchasers_d3":  13,
+                     "installs":  121
+                 },
+                 {
+                     "roas_d3":  27.5,
+                     "cost":  668.96,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  4.96,
+                     "adset_name":  "VE0105",
+                     "unique_purchasers_d3":  6,
+                     "installs":  121
+                 },
+                 {
+                     "roas_d3":  40.37,
+                     "cost":  697.67,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  9.24,
+                     "adset_name":  "VE0053",
+                     "unique_purchasers_d3":  11,
+                     "installs":  119
+                 },
+                 {
+                     "roas_d3":  31.68,
+                     "cost":  529.85,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  3.36,
+                     "adset_name":  "VE0052",
+                     "unique_purchasers_d3":  4,
+                     "installs":  119
+                 },
+                 {
+                     "roas_d3":  49.4,
+                     "cost":  998.24,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  9.57,
+                     "adset_name":  "VE0118",
+                     "unique_purchasers_d3":  11,
+                     "installs":  115
+                 },
+                 {
+                     "roas_d3":  38.82,
+                     "cost":  900.29,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  10.48,
+                     "adset_name":  "VE0094",
+                     "unique_purchasers_d3":  11,
+                     "installs":  105
+                 },
+                 {
+                     "roas_d3":  34.51,
+                     "cost":  1208.32,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  6.73,
+                     "adset_name":  "VE0216_ver 1",
+                     "unique_purchasers_d3":  7,
+                     "installs":  104
+                 },
+                 {
+                     "roas_d3":  126.67,
+                     "cost":  637.93,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  13.86,
+                     "adset_name":  "VE0163",
+                     "unique_purchasers_d3":  14,
+                     "installs":  101
+                 },
+                 {
+                     "roas_d3":  28.58,
+                     "cost":  1224.82,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  7.92,
+                     "adset_name":  "VE0244",
+                     "unique_purchasers_d3":  8,
+                     "installs":  101
+                 },
+                 {
+                     "roas_d3":  32.74,
+                     "cost":  1227.06,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  10.89,
+                     "adset_name":  "VE0216_ver 3",
+                     "unique_purchasers_d3":  11,
+                     "installs":  101
+                 },
+                 {
+                     "roas_d3":  22.48,
+                     "cost":  884.14,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  10.1,
+                     "adset_name":  "VE0033",
+                     "unique_purchasers_d3":  10,
+                     "installs":  99
+                 },
+                 {
+                     "roas_d3":  26.11,
+                     "cost":  618.43,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  1.09,
+                     "adset_name":  "VE0211",
+                     "unique_purchasers_d3":  1,
+                     "installs":  92
+                 },
+                 {
+                     "roas_d3":  43.05,
+                     "cost":  480.65,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  5.62,
+                     "adset_name":  "VE0341",
+                     "unique_purchasers_d3":  5,
+                     "installs":  89
+                 },
+                 {
+                     "roas_d3":  25.17,
+                     "cost":  952.67,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  7.23,
+                     "adset_name":  "VE0051",
+                     "unique_purchasers_d3":  6,
+                     "installs":  83
+                 },
+                 {
+                     "roas_d3":  90.62,
+                     "cost":  667.11,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  14.47,
+                     "adset_name":  "VE0149",
+                     "unique_purchasers_d3":  11,
+                     "installs":  76
+                 },
+                 {
+                     "roas_d3":  19.64,
+                     "cost":  1173.34,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  9.46,
+                     "adset_name":  "VE0231",
+                     "unique_purchasers_d3":  7,
+                     "installs":  74
+                 },
+                 {
+                     "roas_d3":  19.99,
+                     "cost":  1181.99,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  12.12,
+                     "adset_name":  "VE0260",
+                     "unique_purchasers_d3":  8,
+                     "installs":  66
+                 },
+                 {
+                     "roas_d3":  14,
+                     "cost":  504.22,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  3.77,
+                     "adset_name":  "VE0242",
+                     "unique_purchasers_d3":  2,
+                     "installs":  53
+                 },
+                 {
+                     "roas_d3":  12.89,
+                     "cost":  507.86,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  3.77,
+                     "adset_name":  "VE0031",
+                     "unique_purchasers_d3":  2,
+                     "installs":  53
+                 },
+                 {
+                     "roas_d3":  35.17,
+                     "cost":  655.63,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  5.77,
+                     "adset_name":  "VE0021",
+                     "unique_purchasers_d3":  3,
+                     "installs":  52
+                 },
+                 {
+                     "roas_d3":  10.39,
+                     "cost":  504.97,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  4.17,
+                     "adset_name":  "VE0054",
+                     "unique_purchasers_d3":  2,
+                     "installs":  48
+                 },
+                 {
+                     "roas_d3":  8.33,
+                     "cost":  491.52,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  5,
+                     "adset_name":  "VE0243",
+                     "unique_purchasers_d3":  2,
+                     "installs":  40
+                 },
+                 {
+                     "roas_d3":  18.75,
+                     "cost":  420.81,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  2.56,
+                     "adset_name":  "VE0213",
+                     "unique_purchasers_d3":  1,
+                     "installs":  39
+                 },
+                 {
+                     "roas_d3":  11.66,
+                     "cost":  551.34,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  3.23,
+                     "adset_name":  "VE0028",
+                     "unique_purchasers_d3":  1,
+                     "installs":  31
+                 },
+                 {
+                     "roas_d3":  19.7,
+                     "cost":  500.57,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  13.33,
+                     "adset_name":  "VE0063",
+                     "unique_purchasers_d3":  4,
+                     "installs":  30
+                 },
+                 {
+                     "roas_d3":  9.96,
+                     "cost":  512.56,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  3.33,
+                     "adset_name":  "VE0027",
+                     "unique_purchasers_d3":  1,
+                     "installs":  30
+                 },
+                 {
+                     "roas_d3":  12.25,
+                     "cost":  603.79,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  14.29,
+                     "adset_name":  "VE0064",
+                     "unique_purchasers_d3":  4,
+                     "installs":  28
+                 },
+                 {
+                     "roas_d3":  31.37,
+                     "cost":  415.65,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  12,
+                     "adset_name":  "VE0212",
+                     "unique_purchasers_d3":  3,
+                     "installs":  25
+                 },
+                 {
+                     "roas_d3":  13.38,
+                     "cost":  410.05,
+                     "timeframe":  "Jan-Feb 2026",
+                     "buyer_rate_d3":  4.17,
+                     "adset_name":  "VE0232",
+                     "unique_purchasers_d3":  1,
+                     "installs":  24
+                 },
+                 {
+                     "roas_d3":  35.58,
+                     "cost":  614.18,
+                     "timeframe":  "Mar-Apr 2026",
+                     "buyer_rate_d3":  11.01,
+                     "adset_name":  "TSH009_VE0429_MS5 Chạy map nhạc phonk",
+                     "unique_purchasers_d3":  12,
+                     "installs":  109
+                 },
+                 {
+                     "roas_d3":  47.97,
+                     "cost":  569.79,
+                     "timeframe":  "Mar-Apr 2026",
+                     "buyer_rate_d3":  5.15,
+                     "adset_name":  "TSH009_VE0447_Scale up VE0001_old new new layout_UI",
+                     "unique_purchasers_d3":  5,
+                     "installs":  97
+                 },
+                 {
+                     "roas_d3":  77.14,
+                     "cost":  358.62,
+                     "timeframe":  "Mar-Apr 2026",
+                     "buyer_rate_d3":  13.98,
+                     "adset_name":  "TSH009_VE0444_Scale up VE0001_old new harvest event_3",
+                     "unique_purchasers_d3":  13,
+                     "installs":  93
+                 },
+                 {
+                     "roas_d3":  38.16,
+                     "cost":  494.23,
+                     "timeframe":  "Mar-Apr 2026",
+                     "buyer_rate_d3":  4,
+                     "adset_name":  "TSH009_VE0446_Scale up VE0001_old new new layout_ko UI",
+                     "unique_purchasers_d3":  3,
+                     "installs":  75
+                 },
+                 {
+                     "roas_d3":  64.37,
+                     "cost":  1072.53,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.11,
+                     "adset_name":  "TSH009_VE0556_Hero Class",
+                     "unique_purchasers_d3":  21,
+                     "installs":  189
+                 },
+                 {
+                     "roas_d3":  47.33,
+                     "cost":  887.17,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  12.18,
+                     "adset_name":  "TSH009_VE0271_Scale up Revolution_hero 107",
+                     "unique_purchasers_d3":  19,
+                     "installs":  156
+                 },
+                 {
+                     "roas_d3":  63.15,
+                     "cost":  912.42,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  7.33,
+                     "adset_name":  "TSH009_VE0284_Review F2P_30s_1080x1920",
+                     "unique_purchasers_d3":  11,
+                     "installs":  150
+                 },
+                 {
+                     "roas_d3":  54.42,
+                     "cost":  1079.11,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.76,
+                     "adset_name":  "VE0392_Scale up VE0001_Hero trắng upgrade",
+                     "unique_purchasers_d3":  20,
+                     "installs":  170
+                 },
+                 {
+                     "roas_d3":  64.05,
+                     "cost":  831.99,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.89,
+                     "adset_name":  "TSH009_VE0506_Scale up_VE0217_Đổi hero_107",
+                     "unique_purchasers_d3":  17,
+                     "installs":  143
+                 },
+                 {
+                     "roas_d3":  50.91,
+                     "cost":  933.21,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  7.86,
+                     "adset_name":  "TSH009_VE0391_Scale up VE0001_Hero trắng",
+                     "unique_purchasers_d3":  11,
+                     "installs":  140
+                 },
+                 {
+                     "roas_d3":  43.34,
+                     "cost":  850.9,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  7.25,
+                     "adset_name":  "TSH009_VE0518_Hero Collection Stat Highlight_GP",
+                     "unique_purchasers_d3":  10,
+                     "installs":  138
+                 },
+                 {
+                     "roas_d3":  59.55,
+                     "cost":  942.51,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  10.22,
+                     "adset_name":  "TSH009_VE0466_Scale up VE0001_Old new_hero 113",
+                     "unique_purchasers_d3":  14,
+                     "installs":  137
+                 },
+                 {
+                     "roas_d3":  56.4,
+                     "cost":  784.26,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  9.02,
+                     "adset_name":  "TSH009_VE0358_Old new hero 104_ver 2",
+                     "unique_purchasers_d3":  11,
+                     "installs":  122
+                 },
+                 {
+                     "roas_d3":  68.44,
+                     "cost":  803.86,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  8.55,
+                     "adset_name":  "TSH009_VE0505_Scale up_VE0217_Đổi hero_106",
+                     "unique_purchasers_d3":  10,
+                     "installs":  117
+                 },
+                 {
+                     "roas_d3":  58.24,
+                     "cost":  945.53,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  7.48,
+                     "adset_name":  "TSH009_CC0003",
+                     "unique_purchasers_d3":  16,
+                     "installs":  214
+                 },
+                 {
+                     "roas_d3":  63.01,
+                     "cost":  761.96,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  8.85,
+                     "adset_name":  "TSH009_VE0357_Old new stickman ver 3_15s_1080x1920",
+                     "unique_purchasers_d3":  10,
+                     "installs":  113
+                 },
+                 {
+                     "roas_d3":  48.31,
+                     "cost":  822.23,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.61,
+                     "adset_name":  "TSH009_VE0474_Scale up VE0001_Hook_pixel",
+                     "unique_purchasers_d3":  13,
+                     "installs":  112
+                 },
+                 {
+                     "roas_d3":  76.37,
+                     "cost":  840.16,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  13.39,
+                     "adset_name":  "TSH009_VE0380_Showcase hero ulti ingame_endcard_1080x1920",
+                     "unique_purchasers_d3":  15,
+                     "installs":  112
+                 },
+                 {
+                     "roas_d3":  68.84,
+                     "cost":  652.23,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  4.81,
+                     "adset_name":  "TSH009_VE0451_Showcase anim kèm stat",
+                     "unique_purchasers_d3":  5,
+                     "installs":  104
+                 },
+                 {
+                     "roas_d3":  44.37,
+                     "cost":  851.93,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.76,
+                     "adset_name":  "TSH009_VE0554_Walk through World_1080x1920",
+                     "unique_purchasers_d3":  12,
+                     "installs":  102
+                 },
+                 {
+                     "roas_d3":  88.38,
+                     "cost":  627.36,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  11.46,
+                     "adset_name":  "TSH009_VE0341_Thêm ver_VE0163_animation_1080x1920",
+                     "unique_purchasers_d3":  11,
+                     "installs":  96
+                 },
+                 {
+                     "roas_d3":  79.09,
+                     "cost":  611.39,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  15.05,
+                     "adset_name":  "TSH009_VE0359_Revolution hero 104 ver 2",
+                     "unique_purchasers_d3":  14,
+                     "installs":  93
+                 },
+                 {
+                     "roas_d3":  97.35,
+                     "cost":  614.57,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  15.91,
+                     "adset_name":  "TSH009_VE0357_Old new stickman ver 3_30s_1080x1920",
+                     "unique_purchasers_d3":  14,
+                     "installs":  88
+                 },
+                 {
+                     "roas_d3":  38.41,
+                     "cost":  563.61,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  10.74,
+                     "adset_name":  "TSH009_CC0005",
+                     "unique_purchasers_d3":  13,
+                     "installs":  121
+                 },
+                 {
+                     "roas_d3":  11.72,
+                     "cost":  613.21,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  6.56,
+                     "adset_name":  "TSH009_VE0277_Upgrade theo Slayer Legend",
+                     "unique_purchasers_d3":  4,
+                     "installs":  61
+                 },
+                 {
+                     "roas_d3":  35.11,
+                     "cost":  770.77,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  13.11,
+                     "adset_name":  "TSH009_VE0340_Thêm ver_VE0163_dota 2_1080x1920",
+                     "unique_purchasers_d3":  8,
+                     "installs":  61
+                 },
+                 {
+                     "roas_d3":  27.76,
+                     "cost":  336.83,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  8.77,
+                     "adset_name":  "TSH009_VE0383_Upgrade hero diễn anim",
+                     "unique_purchasers_d3":  5,
+                     "installs":  57
+                 },
+                 {
+                     "roas_d3":  101.32,
+                     "cost":  394.41,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  20.37,
+                     "adset_name":  "TSH009_VE0365_So sánh level đan xen",
+                     "unique_purchasers_d3":  11,
+                     "installs":  54
+                 },
+                 {
+                     "roas_d3":  9.61,
+                     "cost":  512.09,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  4.08,
+                     "adset_name":  "TSH009_CC0002",
+                     "unique_purchasers_d3":  2,
+                     "installs":  49
+                 },
+                 {
+                     "roas_d3":  9.97,
+                     "cost":  238.46,
+                     "timeframe":  "May-Jul 2026",
+                     "buyer_rate_d3":  12.5,
+                     "adset_name":  "TSH009_VE0382_Showcase skill lần lượt_1080x1920",
+                     "unique_purchasers_d3":  2,
+                     "installs":  16
+                 }
+             ]
+}

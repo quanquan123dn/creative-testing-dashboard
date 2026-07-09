@@ -84,27 +84,42 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET: Read stored AppsFlyer data
+ * Tries Vercel Blob first, falls back to local JSON file
  */
 export async function GET() {
+  // Try Vercel Blob first
   try {
     const { blobs } = await list({ prefix: BLOB_PREFIX });
 
-    if (blobs.length === 0) {
-      return NextResponse.json({ success: true, data: null, message: 'No data uploaded yet' });
+    if (blobs.length > 0) {
+      const latestBlob = blobs.sort((a, b) =>
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      )[0];
+
+      const response = await fetch(latestBlob.url);
+      const data = await response.json();
+
+      return NextResponse.json({ success: true, data });
     }
-
-    const latestBlob = blobs.sort((a, b) =>
-      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-    )[0];
-
-    const response = await fetch(latestBlob.url);
-    const data = await response.json();
-
-    return NextResponse.json({ success: true, data });
   } catch (error: unknown) {
-    console.error('Read error:', error);
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Read failed' }, { status: 500 });
+    console.warn('Blob read failed, trying local fallback:', error instanceof Error ? error.message : error);
   }
+
+  // Fallback: read from local JSON file
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'src', 'data', 'appsflyer-upload.json');
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const data = JSON.parse(raw);
+      return NextResponse.json({ success: true, data, source: 'local' });
+    }
+  } catch (e) {
+    console.warn('Local fallback also failed:', e);
+  }
+
+  return NextResponse.json({ success: true, data: null, message: 'No data uploaded yet' });
 }
 
 /**
