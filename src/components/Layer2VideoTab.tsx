@@ -142,16 +142,26 @@ export default function Layer2VideoTab() {
           buyer_rate_d3,
           roas_d3,
           has_af_data: !!afMatch,
-          decision_result: scoreAppLovinCreative({
-            roas_3d: roas_d3,
-            buyer_rate: buyer_rate_d3,
-            spend,
-            installs,
-            cost: spend,
-            // If we have AF CSV data, bypass min_purchasers threshold (creative already tested & turned off)
-            // Only show "New" when there's no AF data at all
-            sales_3d: afMatch ? 999 : 0,
-          }, config),
+          // If adset is still ACTIVE → "Testing", if PAUSED → score Pass/Iterate/Fail
+          decision_result: (metaAd.adset_status === 'ACTIVE')
+            ? {
+                decision: 'new' as const,
+                label: 'Testing',
+                emoji: '🧪',
+                hexColor: '#38bdf8',
+                hexBg: 'rgba(56,189,248,0.12)',
+                hexBorder: 'rgba(56,189,248,0.3)',
+                reason: 'Adset đang chạy — chờ kết quả',
+                warnings: [],
+              }
+            : scoreAppLovinCreative({
+                roas_3d: roas_d3,
+                buyer_rate: buyer_rate_d3,
+                spend,
+                installs,
+                cost: spend,
+                sales_3d: afMatch ? 999 : 0,
+              }, config),
         };
       });
 
