@@ -116,10 +116,14 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-export async function getUnityCreativeStats(datePreset: string): Promise<UnityInsightsResult> {
+export async function getUnityCreativeStats(
+  datePreset: string = 'last_30d',
+  campaignIdOverride?: string,
+  campaignNameOverride?: string
+): Promise<UnityInsightsResult> {
   const orgId = (process.env.UNITY_ORG_ID || '').trim();
-  const campaignId = (process.env.UNITY_CAMPAIGN_ID || '').trim();
-  const campaignName = (process.env.UNITY_CAMPAIGN_NAME || 'Unity PLA Campaign').trim();
+  const campaignId = (campaignIdOverride || process.env.UNITY_CAMPAIGN_ID || '').trim();
+  const campaignName = (campaignNameOverride || process.env.UNITY_CAMPAIGN_NAME || 'Unity PLA Campaign').trim();
 
   if (!orgId || !campaignId) {
     throw new Error('Missing UNITY_ORG_ID or UNITY_CAMPAIGN_ID environment variables');

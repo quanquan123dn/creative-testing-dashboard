@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdInsight } from '@/lib/meta-api';
 import { extractCreativeCode } from '@/lib/utils';
 import { scoreCreative, DEFAULT_CONFIG, DecisionConfig } from '@/lib/decision-engine';
+import { GAME_LIST, getGameConfig, DEFAULT_GAME_ID, GameConfig } from '@/lib/game-config';
 import VideoTab from '@/components/VideoTab';
 import PLATab from '@/components/PLATab';
 import AppLovinTab from '@/components/AppLovinTab';
@@ -15,8 +16,11 @@ export interface EnrichedAd extends AdInsight {
   layer2_status?: string;
 }
 
+type TabKey = 'video' | 'pla' | 'applovin' | 'layer2video';
+
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'video' | 'pla' | 'applovin' | 'layer2video'>('video');
+  const [selectedGameId, setSelectedGameId] = useState(DEFAULT_GAME_ID);
+  const [activeTab, setActiveTab] = useState<TabKey>('video');
   const [datePreset, setDatePreset] = useState('last_30d');
   const [ads, setAds] = useState<EnrichedAd[]>([]);
   const [campaignName, setCampaignName] = useState<string | null>(null);
@@ -25,20 +29,61 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [config] = useState<DecisionConfig>(DEFAULT_CONFIG);
 
+  const gameConfig = useMemo(() => getGameConfig(selectedGameId), [selectedGameId]);
+
+  // Available tabs based on game config
+  const availableTabs = useMemo(() => {
+    const tabs: { key: TabKey; label: string; color: string }[] = [];
+    if (gameConfig.layers.layer1Video) tabs.push({ key: 'video', label: 'Layer 1 Video', color: 'blue' });
+    if (gameConfig.layers.layer1PLA) tabs.push({ key: 'pla', label: 'Layer 1 PLA', color: 'blue' });
+    if (gameConfig.layers.layer2AppLovin) tabs.push({ key: 'applovin', label: 'Layer 2 AppLovin', color: 'purple' });
+    if (gameConfig.layers.layer2Video) tabs.push({ key: 'layer2video', label: 'Layer 2 Video', color: 'purple' });
+    return tabs;
+  }, [gameConfig]);
+
+  // Reset tab when switching games if current tab isn't available
+  useEffect(() => {
+    const tabAvailable = availableTabs.some(t => t.key === activeTab);
+    if (!tabAvailable && availableTabs.length > 0) {
+      setActiveTab(availableTabs[0].key);
+    }
+  }, [availableTabs, activeTab]);
+
+  // Reset data when switching games
+  const handleGameChange = useCallback((gameId: string) => {
+    setSelectedGameId(gameId);
+    setAds([]);
+    setCampaignName(null);
+    setLastSync(null);
+    setError(null);
+  }, []);
+
   const fetchData = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     try {
       const forceParamStr = force ? '&force=true' : '';
-      const [res, l2Res] = await Promise.all([
-        fetch(`/api/insights?date_preset=${datePreset}${forceParamStr}`),
-        fetch(`/api/layer2-meta-insights${force ? '?force=true' : ''}`)
-      ]);
-      const json = await res.json();
-      const l2Json = await l2Res.json();
+      const gameParam = `&game=${selectedGameId}`;
+      
+      // Fetch Layer 1 Video data
+      const fetchPromises: Promise<Response>[] = [
+        fetch(`/api/insights?date_preset=${datePreset}${forceParamStr}${gameParam}`)
+      ];
+      
+      // Only fetch L2 data if game has Layer 2
+      if (gameConfig.layers.layer2Video) {
+        fetchPromises.push(
+          fetch(`/api/layer2-meta-insights${force ? '?' : '?'}game=${selectedGameId}${forceParamStr ? '&force=true' : ''}`)
+        );
+      }
+      
+      const responses = await Promise.all(fetchPromises);
+      const json = await responses[0].json();
+      const l2Json = gameConfig.layers.layer2Video && responses[1] ? await responses[1].json() : null;
+      
       if (!json.success) throw new Error(json.error);
 
-      const l2Ads = l2Json.success ? (l2Json.data?.ads || []) : [];
+      const l2Ads = l2Json?.success ? (l2Json.data?.ads || []) : [];
 
       const enriched: EnrichedAd[] = (json.data.ads || []).map((ad: AdInsight) => {
         const decision_result = scoreCreative(
@@ -55,23 +100,27 @@ export default function DashboardPage() {
         );
 
         let layer2_status = 'Chưa test';
-        const creativeCode = extractCreativeCode(ad.ad_name);
-        const benchmarkCodes = ['VE0001', 'VE0193', 'VE0217', 'VE0163'];
         
-        if (benchmarkCodes.includes(creativeCode)) {
-          layer2_status = 'Không test';
-        } else if (decision_result.decision === 'kill') {
-          layer2_status = 'Không test';
-        } else if (creativeCode) {
-          // Match by creative code (e.g. VE0266) — works whether L2 adset name is 
-          // full "TSH009_VE0266_..." or short "VE0266"
-          const l2Ad = l2Ads.find((a: any) => {
-            const l2Code = extractCreativeCode(a.ad_name);
-            return l2Code === creativeCode;
-          });
-          if (l2Ad) {
-            layer2_status = l2Ad.adset_status === 'ACTIVE' ? 'Đang test' : 'Đã test';
+        // Only calculate L2 status if game has Layer 2
+        if (gameConfig.layers.layer2Video) {
+          const creativeCode = extractCreativeCode(ad.ad_name);
+          const benchmarkCodes = ['VE0001', 'VE0193', 'VE0217', 'VE0163'];
+          
+          if (benchmarkCodes.includes(creativeCode)) {
+            layer2_status = 'Không test';
+          } else if (decision_result.decision === 'kill') {
+            layer2_status = 'Không test';
+          } else if (creativeCode) {
+            const l2Ad = l2Ads.find((a: any) => {
+              const l2Code = extractCreativeCode(a.ad_name);
+              return l2Code === creativeCode;
+            });
+            if (l2Ad) {
+              layer2_status = l2Ad.adset_status === 'ACTIVE' ? 'Đang test' : 'Đã test';
+            }
           }
+        } else {
+          layer2_status = '';
         }
 
         return {
@@ -89,7 +138,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [datePreset, config]);
+  }, [datePreset, config, selectedGameId, gameConfig]);
 
   useEffect(() => {
     fetchData();
@@ -105,48 +154,34 @@ export default function DashboardPage() {
           datePreset={datePreset}
           onDatePresetChange={setDatePreset}
           onSync={fetchData}
+          gameConfig={gameConfig}
+          gameList={GAME_LIST}
+          onGameChange={handleGameChange}
         />
 
         {/* Tab Navigation */}
         <div className="border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <div className="max-w-[1600px] mx-auto px-6">
             <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('video')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
-                  activeTab === 'video' ? 'border-blue-500 text-blue-400 bg-blue-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-                id="tab-video"
-              >
-                Layer 1 Video
-              </button>
-              <button
-                onClick={() => setActiveTab('pla')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
-                  activeTab === 'pla' ? 'border-blue-500 text-blue-400 bg-blue-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-                id="tab-pla"
-              >
-                Layer 1 PLA
-              </button>
-              <button
-                onClick={() => setActiveTab('applovin')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
-                  activeTab === 'applovin' ? 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-                id="tab-applovin"
-              >
-                Layer 2 AppLovin
-              </button>
-              <button
-                onClick={() => setActiveTab('layer2video')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
-                  activeTab === 'layer2video' ? 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]' : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-                id="tab-layer2video"
-              >
-                Layer 2 Video
-              </button>
+              {availableTabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 rounded-t-xl ${
+                    activeTab === tab.key
+                      ? `border-${tab.color}-500 text-${tab.color}-400 bg-${tab.color}-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]`
+                      : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                  }`}
+                  style={activeTab === tab.key ? {
+                    borderBottomColor: tab.color === 'purple' ? '#a855f7' : '#3b82f6',
+                    color: tab.color === 'purple' ? '#c084fc' : '#60a5fa',
+                    background: tab.color === 'purple' ? 'rgba(168,85,247,0.1)' : 'rgba(59,130,246,0.1)',
+                  } : undefined}
+                  id={`tab-${tab.key}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -172,9 +207,9 @@ export default function DashboardPage() {
             datePreset={datePreset}
           />
         )}
-        {activeTab === 'pla' && <PLATab />}
+        {activeTab === 'pla' && <PLATab gameId={selectedGameId} />}
         {activeTab === 'applovin' && <AppLovinTab />}
-        {activeTab === 'layer2video' && <Layer2VideoTab />}
+        {activeTab === 'layer2video' && <Layer2VideoTab gameId={selectedGameId} />}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ function formatCurrency(n: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
-export default function PLATab() {
+export default function PLATab({ gameId = 'epic-stickman' }: { gameId?: string }) {
   const [ads, setAds] = useState<EnrichedPLA[]>([]);
   const [campaignName, setCampaignName] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function PLATab() {
     setError(null);
     try {
       const forceParam = force ? '&force=true' : '';
-      const res = await fetch(`/api/unity-insights?date_preset=maximum${forceParam}`);
+      const res = await fetch(`/api/unity-insights?date_preset=maximum${forceParam}&game=${gameId}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
 
@@ -66,7 +66,7 @@ export default function PLATab() {
     } finally {
       setLoading(false);
     }
-  }, [config]);
+  }, [config, gameId]);
 
   useEffect(() => {
     fetchData();

@@ -1,7 +1,9 @@
 'use client';
 
-import { RefreshCw, Activity } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { RefreshCw, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
+import { GameConfig } from '@/lib/game-config';
 
 interface HeaderProps {
   campaignName: string | null;
@@ -10,6 +12,9 @@ interface HeaderProps {
   datePreset: string;
   onDatePresetChange: (preset: string) => void;
   onSync: (force?: boolean) => void;
+  gameConfig: GameConfig;
+  gameList: GameConfig[];
+  onGameChange: (gameId: string) => void;
 }
 
 const DATE_PRESETS = [
@@ -28,18 +33,34 @@ function formatLastSync(iso: string | null): string {
 }
 
 export default function Header({
-  campaignName,
   lastSync,
   loading,
   datePreset,
   onDatePresetChange,
   onSync,
+  gameConfig,
+  gameList,
+  onGameChange,
 }: HeaderProps) {
+  const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setGameDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
     <header style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="max-w-[1600px] mx-auto px-6 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Left: Logo + Campaign */}
+          {/* Left: Logo + Game Selector */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-black/40">
@@ -55,7 +76,52 @@ export default function Header({
               </div>
             </div>
 
+            {/* Game Selector */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setGameDropdownOpen(!gameDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  color: '#e2e8f0',
+                }}
+              >
+                <span className="text-base">{gameConfig.icon}</span>
+                <span>{gameConfig.name}</span>
+                <ChevronDown size={14} className={`transition-transform ${gameDropdownOpen ? 'rotate-180' : ''}`} style={{ color: '#94a3b8' }} />
+              </button>
 
+              {gameDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl overflow-hidden shadow-2xl z-50"
+                  style={{ background: '#1a2138', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {gameList.map(game => (
+                    <button
+                      key={game.id}
+                      onClick={() => { onGameChange(game.id); setGameDropdownOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-all hover:bg-white/5 text-left"
+                      style={{
+                        color: game.id === gameConfig.id ? '#60a5fa' : '#94a3b8',
+                        background: game.id === gameConfig.id ? 'rgba(59,130,246,0.08)' : 'transparent',
+                      }}
+                    >
+                      <span className="text-lg">{game.icon}</span>
+                      <div>
+                        <div className="font-medium" style={{ color: game.id === gameConfig.id ? '#e2e8f0' : '#94a3b8' }}>
+                          {game.name}
+                        </div>
+                        <div className="text-[10px]" style={{ color: '#64748b' }}>
+                          {game.shortName} • {Object.values(game.layers).filter(Boolean).length} layers
+                        </div>
+                      </div>
+                      {game.id === gameConfig.id && (
+                        <span className="ml-auto text-xs" style={{ color: '#60a5fa' }}>✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: controls */}

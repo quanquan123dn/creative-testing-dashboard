@@ -49,8 +49,8 @@ async function metaFetch(path: string, params: Record<string, string> = {}) {
   return res.json();
 }
 
-export async function findCampaign(campaignNameOverride?: string): Promise<CampaignSummary | null> {
-  const AD_ACCOUNT_ID = process.env.META_AD_ACCOUNT_ID!;
+export async function findCampaign(campaignNameOverride?: string, adAccountId?: string): Promise<CampaignSummary | null> {
+  const AD_ACCOUNT_ID = adAccountId || process.env.META_AD_ACCOUNT_ID!;
   const CAMPAIGN_NAME = campaignNameOverride || process.env.META_CAMPAIGN_NAME!;
 
   const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/campaigns`, {
@@ -65,7 +65,7 @@ export async function findCampaign(campaignNameOverride?: string): Promise<Campa
   return match || null;
 }
 
-export async function getCampaignAds(campaignId: string): Promise<{
+export async function getCampaignAds(campaignId: string, adAccountId?: string): Promise<{
   id: string;
   name: string;
   status: string;
@@ -73,7 +73,8 @@ export async function getCampaignAds(campaignId: string): Promise<{
   adset?: { status: string };
   creative: { thumbnail_url?: string; video_id?: string };
 }[]> {
-  const data = await metaFetch(`/${campaignId}/ads`, {
+  const AD_ACCOUNT_ID = adAccountId || process.env.META_AD_ACCOUNT_ID!;
+  const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/ads`, {
     fields: 'id,name,status,created_time,adset{status},creative{thumbnail_url,video_id}',
     limit: '200',
   });
@@ -88,18 +89,18 @@ function extractAction(
   return found ? parseFloat(found.value) : 0;
 }
 
-export async function getAllAdInsights(datePreset: string = 'last_7d', campaignNameOverride?: string): Promise<{
+export async function getAllAdInsights(datePreset: string = 'last_7d', campaignNameOverride?: string, adAccountId?: string): Promise<{
   ads: AdInsight[];
   campaign: CampaignSummary | null;
   lastSync: string;
 }> {
-  const campaign = await findCampaign(campaignNameOverride);
+  const campaign = await findCampaign(campaignNameOverride, adAccountId);
   if (!campaign) {
     return { ads: [], campaign: null, lastSync: new Date().toISOString() };
   }
 
   // Fetch all ads metadata
-  const adsMetadata = await getCampaignAds(campaign.id);
+  const adsMetadata = await getCampaignAds(campaign.id, adAccountId);
 
   // Build a lookup map for ad metadata
   const adMap: Record<string, typeof adsMetadata[0]> = {};

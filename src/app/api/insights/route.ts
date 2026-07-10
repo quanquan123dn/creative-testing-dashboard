@@ -1,25 +1,31 @@
 import { NextResponse } from 'next/server';
 import { getAllAdInsights } from '@/lib/meta-api';
 import { unstable_cache, revalidateTag } from 'next/cache';
+import { getGameConfig } from '@/lib/game-config';
 
 const VALID_PRESETS = ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'last_90d', 'maximum'];
 
 // Cache duration: 30 minutes (1800 seconds)
 const CACHE_DURATION = 1800;
 
-function getCachedInsights(datePreset: string) {
+function getCachedInsights(datePreset: string, gameId: string) {
+  const gameConfig = getGameConfig(gameId);
   return unstable_cache(
     async () => {
-      const data = await getAllAdInsights(datePreset);
+      const data = await getAllAdInsights(
+        datePreset,
+        gameConfig.meta.layer1CampaignName,
+        gameConfig.meta.adAccountId
+      );
       return {
         ...data,
         cachedAt: new Date().toISOString(),
       };
     },
-    [`meta-insights-${datePreset}`],
+    [`meta-insights-${gameId}-${datePreset}`],
     {
       revalidate: CACHE_DURATION,
-      tags: ['meta-insights', `meta-insights-${datePreset}`],
+      tags: ['meta-insights', `meta-insights-${gameId}-${datePreset}`],
     }
   )();
 }
@@ -28,6 +34,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawPreset = searchParams.get('date_preset') || 'last_7d';
   const datePreset = VALID_PRESETS.includes(rawPreset) ? rawPreset : 'last_7d';
+  const gameId = searchParams.get('game') || 'epic-stickman';
   const force = searchParams.get('force') === 'true';
 
   try {
@@ -36,7 +43,7 @@ export async function GET(request: Request) {
       await revalidateTag('meta-insights', 'max');
     }
 
-    const data = await getCachedInsights(datePreset);
+    const data = await getCachedInsights(datePreset, gameId);
 
     return NextResponse.json({
       success: true,

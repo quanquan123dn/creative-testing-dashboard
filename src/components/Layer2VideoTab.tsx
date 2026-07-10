@@ -46,7 +46,7 @@ interface AFUploadRow {
   [key: string]: string | number;
 }
 
-export default function Layer2VideoTab() {
+export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: string }) {
   const [ads, setAds] = useState<EnrichedAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function Layer2VideoTab() {
       
       // Fetch Meta data + uploaded AppsFlyer CSV data in parallel
       const [metaRes, afUploadRes] = await Promise.all([
-        fetch(`/api/layer2-meta-insights${forceParam}`),
+        fetch(`/api/layer2-meta-insights?game=${gameId}${force ? '&force=true' : ''}`),
         fetch('/api/appsflyer-upload'),
       ]);
       
@@ -181,7 +181,7 @@ export default function Layer2VideoTab() {
     } finally {
       setLoading(false);
     }
-  }, [config]);
+  }, [config, gameId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
