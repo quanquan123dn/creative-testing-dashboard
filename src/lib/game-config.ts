@@ -94,7 +94,7 @@ export const GAMES: Record<string, GameConfig> = {
 
     benchmarks: {
       layer1Video: {
-        ipm_winner: 7,
+        ipm_winner: 6.56,
         ipm_watching: 6.5,
         min_spend: 10,
         min_installs: 5,

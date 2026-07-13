@@ -25,7 +25,7 @@ export interface DecisionConfig {
 }
 
 export const DEFAULT_CONFIG: DecisionConfig = {
-  ipm_winner: 7,
+  ipm_winner: 6.56,
   ipm_watching: 6.5,
   min_spend: 10,
   min_installs: 5,
