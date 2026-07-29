@@ -295,6 +295,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: 36 }}></th>
               <th style={{ minWidth: 220, ...thStyle('ad_name'), cursor: 'pointer' }} onClick={() => handleSort('ad_name')}>
                 Creative <SortIcon column="ad_name" sortKey={sortKey} sortDir={sortDir} />
               </th>
