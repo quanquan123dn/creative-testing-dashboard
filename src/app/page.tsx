@@ -130,7 +130,12 @@ export default function DashboardPage() {
         };
       });
 
-      setAds(enriched);
+      // Filter out ads below min_impressions threshold if game config requires it
+      const finalAds = gameConfig.hideInsufficientImpressions
+        ? enriched.filter(ad => ad.impressions >= gameConfig.benchmarks.layer1Video.min_impressions)
+        : enriched;
+
+      setAds(finalAds);
       setCampaignName(json.data.campaign?.name || null);
       setLastSync(json.data.cachedAt || json.data.lastSync || null);
     } catch (err: unknown) {

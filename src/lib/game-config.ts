@@ -34,6 +34,9 @@ export interface GameConfig {
   shortName: string;
   icon: string;
 
+  // Display options
+  hideInsufficientImpressions: boolean; // Hide ads below min_impressions threshold
+
   layers: GameLayerConfig;
 
   // Meta (Facebook)
@@ -69,6 +72,8 @@ export const GAMES: Record<string, GameConfig> = {
     name: 'Epic Stickman',
     shortName: 'TSH009',
     icon: '⚔️',
+
+    hideInsufficientImpressions: false,
 
     layers: {
       layer1Video: true,
@@ -117,6 +122,8 @@ export const GAMES: Record<string, GameConfig> = {
     name: 'Stickman Defense',
     shortName: 'THP020',
     icon: '🛡️',
+
+    hideInsufficientImpressions: true,
 
     layers: {
       layer1Video: true,
