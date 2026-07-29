@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
 import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle, Download, X, ArrowUpDown } from 'lucide-react';
@@ -476,65 +477,71 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         </div>
       )}
 
-      {/* Floating Compare Bar */}
-      {compareSet.size > 0 && (
-        <div style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: 'linear-gradient(135deg, #1e1b4b, #312e81)', border: '1px solid rgba(139,92,246,0.4)',
-          borderRadius: 16, padding: '12px 24px', zIndex: 50, display: 'flex', alignItems: 'center', gap: 16,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.15)',
-        }}>
-          <ArrowUpDown size={18} style={{ color: '#a78bfa' }} />
-          <span className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
-            {compareSet.size}/2 selected
-          </span>
-          <div className="flex gap-2">
-            {Array.from(compareSet).map(id => {
-              const ad = ads.find(a => a.ad_id === id);
-              return ad ? (
-                <span key={id} className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
-                  style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd' }}>
-                  {ad.ad_name.replace(/^TSH\d+_/, '').substring(0, 20)}
-                  <button onClick={() => toggleCompare(id)} style={{ color: '#94a3b8' }}><X size={12} /></button>
-                </span>
-              ) : null;
-            })}
-          </div>
-          <button
-            onClick={() => setShowCompare(true)}
-            disabled={compareSet.size !== 2}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
-            style={{
-              background: compareSet.size === 2 ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(100,116,139,0.2)',
-              color: compareSet.size === 2 ? '#fff' : '#64748b',
-              cursor: compareSet.size === 2 ? 'pointer' : 'not-allowed',
-              boxShadow: compareSet.size === 2 ? '0 4px 20px rgba(139,92,246,0.4)' : 'none',
-            }}
-          >
-            ⚡ Compare
-          </button>
-          <button onClick={() => setCompareSet(new Set())} style={{ color: '#64748b' }} className="text-xs hover:text-slate-300">Clear</button>
-        </div>
-      )}
+      {/* Portal: Floating Compare Bar + Modals rendered in document.body */}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {/* Floating Compare Bar */}
+          {compareSet.size > 0 && (
+            <div style={{
+              position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, #1e1b4b, #312e81)', border: '1px solid rgba(139,92,246,0.4)',
+              borderRadius: 16, padding: '12px 24px', zIndex: 9999, display: 'flex', alignItems: 'center', gap: 16,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.15)',
+            }}>
+              <ArrowUpDown size={18} style={{ color: '#a78bfa' }} />
+              <span className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
+                {compareSet.size}/2 selected
+              </span>
+              <div className="flex gap-2">
+                {Array.from(compareSet).map(id => {
+                  const ad = ads.find(a => a.ad_id === id);
+                  return ad ? (
+                    <span key={id} className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
+                      style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd' }}>
+                      {ad.ad_name.replace(/^TSH\d+_/, '').substring(0, 20)}
+                      <button onClick={() => toggleCompare(id)} style={{ color: '#94a3b8' }}><X size={12} /></button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+              <button
+                onClick={() => setShowCompare(true)}
+                disabled={compareSet.size !== 2}
+                className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                style={{
+                  background: compareSet.size === 2 ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(100,116,139,0.2)',
+                  color: compareSet.size === 2 ? '#fff' : '#64748b',
+                  cursor: compareSet.size === 2 ? 'pointer' : 'not-allowed',
+                  boxShadow: compareSet.size === 2 ? '0 4px 20px rgba(139,92,246,0.4)' : 'none',
+                }}
+              >
+                ⚡ Compare
+              </button>
+              <button onClick={() => setCompareSet(new Set())} style={{ color: '#64748b' }} className="text-xs hover:text-slate-300">Clear</button>
+            </div>
+          )}
 
-      {/* Compare Modal */}
-      {showCompare && compareSet.size === 2 && (
-        <CompareModal
-          ads={Array.from(compareSet).map(id => ads.find(a => a.ad_id === id)!).filter(Boolean)}
-          config={config}
-          onClose={() => setShowCompare(false)}
-        />
-      )}
+          {/* Compare Modal */}
+          {showCompare && compareSet.size === 2 && (
+            <CompareModal
+              ads={Array.from(compareSet).map(id => ads.find(a => a.ad_id === id)!).filter(Boolean)}
+              config={config}
+              onClose={() => setShowCompare(false)}
+            />
+          )}
 
-      {/* Video Preview Modal */}
-      {previewAd && (
-        <VideoPreviewModal
-          videoId={previewAd.video_id}
-          adId={previewAd.ad_id}
-          thumbnailUrl={previewAd.thumbnail_url}
-          adName={previewAd.ad_name}
-          onClose={() => setPreviewAd(null)}
-        />
+          {/* Video Preview Modal */}
+          {previewAd && (
+            <VideoPreviewModal
+              videoId={previewAd.video_id}
+              adId={previewAd.ad_id}
+              thumbnailUrl={previewAd.thumbnail_url}
+              adName={previewAd.ad_name}
+              onClose={() => setPreviewAd(null)}
+            />
+          )}
+        </>,
+        document.body
       )}
     </div>
   );
