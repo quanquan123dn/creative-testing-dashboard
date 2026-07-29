@@ -209,27 +209,8 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
 
   const adsData: AdInsight[] = Object.values(bestByName);
 
-  // Also include ads with NO spend data (so they show as "New" in table)
-  const adsWithInsight = new Set(adsData.map(a => a.ad_name));
-  adsMetadata.forEach(ad => {
-    if (!adsWithInsight.has(ad.name)) {
-      adsWithInsight.add(ad.name);
-      adsData.push({
-        ad_id: ad.id,
-        ad_name: ad.name,
-        status: ad.status,
-        adset_status: ad.adset?.status || 'UNKNOWN',
-        thumbnail_url: ad.creative?.thumbnail_url || '',
-        video_id: ad.creative?.video_id || null,
-        created_time: ad.created_time || '',
-        spend: 0, impressions: 0, clicks: 0, installs: 0,
-        ctr: 0, cpm: 0, cpc: 0, cpi: 0, ipm: 0,
-        click_to_install: 0, hook_rate: 0, hold_rate: 0,
-        frequency: 0, reach: 0, video_3s_views: 0, video_thruplay: 0,
-        date_start: '', date_stop: '',
-      });
-    }
-  });
+  // Note: Only ads with actual insights data are included.
+  // Ads with zero impressions/spend (not yet running) are excluded.
 
   return {
     ads: adsData,
