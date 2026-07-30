@@ -70,12 +70,12 @@ export async function getCampaignAds(campaignId: string, adAccountId?: string): 
   name: string;
   status: string;
   created_time?: string;
-  adset?: { status: string };
+  adset?: { status: string; optimization_goal?: string };
   creative: { thumbnail_url?: string; video_id?: string };
 }[]> {
   const AD_ACCOUNT_ID = adAccountId || process.env.META_AD_ACCOUNT_ID!;
   const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/ads`, {
-    fields: 'id,name,status,created_time,adset{status},creative{thumbnail_url,video_id}',
+    fields: 'id,name,status,created_time,adset{status,optimization_goal},creative{thumbnail_url,video_id}',
     limit: '200',
   });
   return data.data || [];
@@ -104,7 +104,15 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
 
   // Build a lookup map for ad metadata
   const adMap: Record<string, typeof adsMetadata[0]> = {};
-  adsMetadata.forEach(ad => { adMap[ad.id] = ad; });
+  // Set of ad IDs that are in APP_INSTALLS adsets
+  const appInstallAdIds = new Set<string>();
+  adsMetadata.forEach(ad => {
+    adMap[ad.id] = ad;
+    const optGoal = ad.adset?.optimization_goal || '';
+    if (optGoal === 'APP_INSTALLS') {
+      appInstallAdIds.add(ad.id);
+    }
+  });
 
   // Fetch campaign-level insights with ad breakdown (much more efficient than per-ad calls)
   const fields = [
@@ -209,11 +217,14 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
 
   const adsData: AdInsight[] = Object.values(bestByName);
 
-  // Note: Only ads with actual insights data are included.
-  // Ads with zero impressions/spend (not yet running) are excluded.
+  // Filter: only include ads from APP_INSTALLS adsets
+  const filteredAds = adsData.filter(ad => appInstallAdIds.has(ad.ad_id));
+
+  // Note: Only ads with actual insights data and APP_INSTALLS optimization are included.
+  // Ads in APP_EVENTS adsets (wrong setup) are excluded.
 
   return {
-    ads: adsData,
+    ads: filteredAds,
     campaign,
     lastSync: new Date().toISOString(),
   };
