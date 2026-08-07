@@ -61,8 +61,8 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
   ads: ClickHouseL2Ad[];
   queriedAt: string;
 }> {
-  // Query aggregated by ad + adset with cohort metrics
-  const sql = `
+  // Query 1: Aggregate metrics from mkt table
+  const sqlMkt = `
     SELECT
       ad,
       adset,
@@ -75,7 +75,7 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
       sum(clicks) as clicks,
       sum(rev_iap_d3) as rev_iap_d3,
       sum(rev_iaa_d3) as rev_iaa_d3,
-      sum(iap_buyer_d3) as iap_buyer_d3,
+      sum(iap_buyer_d3) as iap_buyer_d3_raw,
       min(first_day_ad) as first_day_ad,
       max(last_day_ad) as last_day_ad,
       sum(active_days) as active_days
@@ -86,9 +86,36 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
     ORDER BY cost DESC
   `;
 
-  const rows = await queryClickHouse(sql);
+  // Query 2: Accurate buyer_rate_d3 from user-level overview table
+  // buyer_rate_d3 = unique users with iap_revenue > 0 within D0-D3 / total unique users
+  const sqlBuyerRate = `
+    SELECT
+      creative,
+      count(DISTINCT device_id) as total_users,
+      count(DISTINCT CASE WHEN iap_revenue > 0 AND age <= 3 THEN device_id END) as buyers_d3
+    FROM ms5_dashboard_data_overview
+    WHERE campaign = '${campaignName.replace(/'/g, "''")}'
+      AND creative != ''
+      AND creative IS NOT NULL
+    GROUP BY creative
+  `;
 
-  const ads: ClickHouseL2Ad[] = rows.map(row => {
+  const [mktRows, buyerRows] = await Promise.all([
+    queryClickHouse(sqlMkt),
+    queryClickHouse(sqlBuyerRate),
+  ]);
+
+  // Build buyer rate lookup by creative name
+  const buyerRateMap: Record<string, { total_users: number; buyers_d3: number }> = {};
+  buyerRows.forEach(row => {
+    const name = row.creative || '';
+    buyerRateMap[name] = {
+      total_users: Number(row.total_users) || 0,
+      buyers_d3: Number(row.buyers_d3) || 0,
+    };
+  });
+
+  const ads: ClickHouseL2Ad[] = mktRows.map(row => {
     const installs = Number(row.installs) || 0;
     const cost = Number(row.cost) || 0;
     const impressions = Number(row.impressions) || 0;
@@ -96,17 +123,23 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
     const rev_iap_d3 = Number(row.rev_iap_d3) || 0;
     const rev_iaa_d3 = Number(row.rev_iaa_d3) || 0;
     const rev_total_d3 = rev_iap_d3 + rev_iaa_d3;
-    const iap_buyer_d3 = Number(row.iap_buyer_d3) || 0;
+
+    // Get accurate buyer_rate_d3 from overview table
+    const adName = row.ad || '';
+    const buyerData = buyerRateMap[adName];
+    const iap_buyer_d3 = buyerData?.buyers_d3 || Number(row.iap_buyer_d3_raw) || 0;
+    const buyer_rate_d3 = buyerData && buyerData.total_users > 0
+      ? (buyerData.buyers_d3 / buyerData.total_users) * 100
+      : (installs > 0 ? (iap_buyer_d3 / installs) * 100 : 0);
 
     const roas_d3 = cost > 0 ? (rev_total_d3 / cost) * 100 : 0;
-    const buyer_rate_d3 = installs > 0 ? (iap_buyer_d3 / installs) * 100 : 0;
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     const cpi = installs > 0 ? cost / installs : 0;
     const cpm = impressions > 0 ? (cost / impressions) * 1000 : 0;
     const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
 
     return {
-      ad_name: row.ad || 'Unknown',
+      ad_name: adName || 'Unknown',
       adset_name: row.adset || '',
       campaign: row.campaign || campaignName,
       media_source: row.media_source || '',
