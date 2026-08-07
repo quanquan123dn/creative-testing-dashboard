@@ -72,7 +72,9 @@ function getCachedL2Stats(campaignName: string, gameId: string) {
       const now = new Date();
       const threeDaysAgo = new Date(now);
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      const fromDate = '2026-01-01'; // Far enough back to cover all campaigns
+      const sixtyDaysAgo = new Date(now);
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      const fromDate = sixtyDaysAgo.toISOString().split('T')[0];
       const toDate = threeDaysAgo.toISOString().split('T')[0];
 
       // Fetch both sources in parallel
