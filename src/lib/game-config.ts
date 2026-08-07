@@ -44,6 +44,7 @@ export interface GameConfig {
     adAccountId: string;
     layer1CampaignName: string;
     layer2CampaignName?: string;
+    layer2StartDate?: string;
   };
 
   // Unity PLA
@@ -86,6 +87,7 @@ export const GAMES: Record<string, GameConfig> = {
       adAccountId: process.env.META_AD_ACCOUNT_ID || '2713722828912411',
       layer1CampaignName: process.env.META_CAMPAIGN_NAME || 'TSH009a_May27_US_T4_QuanNHLeo_FB_Layer 1 creative test',
       layer2CampaignName: process.env.META_LAYER2_CAMPAIGN_NAME || 'TSH009a_Jan15_US_T3_QuanNHLeo_FB_Layer 2 creative test',
+      layer2StartDate: '2026-01-15',
     },
 
     unity: {

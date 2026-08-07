@@ -120,3 +120,74 @@ export async function getAFCohortBuyerData(
 
   return rows;
 }
+
+/**
+ * Split a date range into 60-day chunks and fetch AF data for each.
+ * Aggregates results by adset name across all chunks.
+ * This works around AF API's 60-day max range limit.
+ */
+export async function getAFCohortBuyerDataChunked(
+  campaignStartDate: string,
+  appId?: string,
+): Promise<AFCohortRow[]> {
+  const MAX_DAYS = 57; // Leave small buffer under 60
+  const start = new Date(campaignStartDate);
+  const end = new Date();
+  end.setDate(end.getDate() - 3); // AF data delayed ~3 days
+
+  // Generate date chunks
+  const chunks: { from: string; to: string }[] = [];
+  let chunkStart = new Date(start);
+  while (chunkStart < end) {
+    const chunkEnd = new Date(chunkStart);
+    chunkEnd.setDate(chunkEnd.getDate() + MAX_DAYS);
+    if (chunkEnd > end) chunkEnd.setTime(end.getTime());
+
+    chunks.push({
+      from: chunkStart.toISOString().split('T')[0],
+      to: chunkEnd.toISOString().split('T')[0],
+    });
+
+    chunkStart = new Date(chunkEnd);
+    chunkStart.setDate(chunkStart.getDate() + 1);
+  }
+
+  console.log(`[AF Cohort] Fetching ${chunks.length} chunks: ${chunks.map(c => `${c.from}~${c.to}`).join(', ')}`);
+
+  // Fetch all chunks in parallel
+  const allResults = await Promise.all(
+    chunks.map(chunk =>
+      getAFCohortBuyerData(chunk.from, chunk.to, appId).catch(err => {
+        console.error(`[AF Cohort] Chunk ${chunk.from}~${chunk.to} error:`, err.message);
+        return [] as AFCohortRow[];
+      })
+    )
+  );
+
+  // Aggregate by adset name across all chunks
+  const aggregated: Record<string, AFCohortRow> = {};
+  for (const rows of allResults) {
+    for (const row of rows) {
+      const key = row.adset_name;
+      if (!aggregated[key]) {
+        aggregated[key] = { ...row };
+      } else {
+        aggregated[key].users += row.users;
+        aggregated[key].cost += row.cost;
+        aggregated[key].unique_buyers_d3 += row.unique_buyers_d3;
+        aggregated[key].purchase_count_d3 += row.purchase_count_d3;
+        aggregated[key].purchase_revenue_d3 += row.purchase_revenue_d3;
+      }
+    }
+  }
+
+  // Recalculate rates
+  const result = Object.values(aggregated).map(row => ({
+    ...row,
+    ecpi: row.users > 0 ? row.cost / row.users : 0,
+    buyer_rate_d3: row.users > 0 ? (row.unique_buyers_d3 / row.users) * 100 : 0,
+  }));
+
+  console.log(`[AF Cohort] Total: ${result.length} adsets, ${result.reduce((s, r) => s + r.users, 0)} users`);
+  return result;
+}
