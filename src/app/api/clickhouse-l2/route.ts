@@ -76,9 +76,11 @@ function getCachedL2Stats(campaignName: string, gameId: string) {
       const toDate = threeDaysAgo.toISOString().split('T')[0];
 
       // Fetch both sources in parallel
+      let afError: string | null = null;
       const [chData, afRows] = await Promise.all([
         getL2CreativeStats(campaignName, gameId),
         getAFCohortBuyerData(fromDate, toDate).catch(err => {
+          afError = err.message;
           console.error('[AF Cohort] Error:', err.message);
           return [] as AFCohortRow[];
         }),
@@ -96,6 +98,7 @@ function getCachedL2Stats(campaignName: string, gameId: string) {
           return afRows.some(r => extractCreativeCode(r.adset_name) === adCode);
         }).length,
         afTotal: afRows.length,
+        afError,
         cachedAt: new Date().toISOString(),
       };
     },
