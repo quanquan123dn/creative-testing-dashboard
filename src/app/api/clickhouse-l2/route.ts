@@ -15,48 +15,34 @@ const CACHE_DURATION = 600; // 10 minutes
  * ClickHouse always provides: installs, cost, impressions, clicks, revenue, ctr, cpm, cpi, ipm
  */
 function mergeAFWithCH(chAds: ClickHouseL2Ad[], afRows: AFCohortRow[]): ClickHouseL2Ad[] {
-  // Build AF lookup by creative name (multiple strategies)
-  const afMap: Record<string, AFCohortRow> = {};
+  // Aggregate AF rows by creative code (one creative can appear in many adsets)
+  // e.g. VE0209 appears as "Videos_PLAs_TSH009_VE0209_..._Mintegral", "Videos_PLAs_TSH009_VE0209_..._1200x628", etc.
+  const afByCode: Record<string, { totalUsers: number; totalBuyers: number; totalRevenue: number; totalCost: number }> = {};
+
   afRows.forEach(r => {
-    if (r.adset_name) {
-      afMap[r.adset_name.toLowerCase()] = r;
+    const code = extractCreativeCode(r.adset_name);
+    if (!code) return;
+    const key = code.toLowerCase();
+    if (!afByCode[key]) {
+      afByCode[key] = { totalUsers: 0, totalBuyers: 0, totalRevenue: 0, totalCost: 0 };
     }
+    afByCode[key].totalUsers += r.users;
+    afByCode[key].totalBuyers += r.unique_buyers_d3;
+    afByCode[key].totalRevenue += r.purchase_revenue_d3;
+    afByCode[key].totalCost += r.cost;
   });
 
   return chAds.map(ad => {
-    const adNameLower = ad.ad_name.toLowerCase();
     const adCode = extractCreativeCode(ad.ad_name);
+    if (!adCode) return ad;
 
-    // Match AF data: exact name, creative code, or substring
-    let afMatch: AFCohortRow | undefined;
-
-    // 1. Exact name match
-    afMatch = afMap[adNameLower];
-
-    // 2. Creative code match (VE0209 === VE0209)
-    if (!afMatch && adCode) {
-      afMatch = afRows.find(r => {
-        const afCode = extractCreativeCode(r.adset_name);
-        return afCode && afCode === adCode;
-      });
-    }
-
-    // 3. Substring match
-    if (!afMatch) {
-      afMatch = afRows.find(r => {
-        const afNameLower = r.adset_name.toLowerCase();
-        return adNameLower.includes(afNameLower) || afNameLower.includes(adNameLower);
-      });
-    }
-
-    if (afMatch && afMatch.buyer_rate_d3 > 0) {
-      // Use AF data as primary for buyer metrics
+    const afAgg = afByCode[adCode.toLowerCase()];
+    if (afAgg && afAgg.totalUsers > 0) {
+      const buyer_rate_d3 = (afAgg.totalBuyers / afAgg.totalUsers) * 100;
       return {
         ...ad,
-        buyer_rate_d3: afMatch.buyer_rate_d3,
-        iap_buyer_d3: afMatch.unique_buyers_d3,
-        // Also use AF ROAS if available: purchase_revenue / cost * 100
-        roas_d3: ad.cost > 0 ? (afMatch.purchase_revenue_d3 / ad.cost) * 100 : ad.roas_d3,
+        buyer_rate_d3,
+        iap_buyer_d3: afAgg.totalBuyers,
       };
     }
 
@@ -91,15 +77,26 @@ function getCachedL2Stats(campaignName: string, gameId: string) {
       // Merge: AF primary, CH fallback
       const mergedAds = mergeAFWithCH(chData.ads, afRows);
 
+      // Count how many CH ads matched AF data
+      const afByCode = Object.keys(
+        afRows.reduce((acc, r) => {
+          const code = extractCreativeCode(r.adset_name);
+          if (code) acc[code.toLowerCase()] = true;
+          return acc;
+        }, {} as Record<string, boolean>)
+      );
+      const afMatchedCount = chData.ads.filter(ad => {
+        const code = extractCreativeCode(ad.ad_name);
+        return code && afByCode.includes(code.toLowerCase());
+      }).length;
+
       return {
         campaign: chData.campaign,
         ads: mergedAds,
         queriedAt: chData.queriedAt,
-        afMatched: mergedAds.filter((_, i) => {
-          const adCode = extractCreativeCode(chData.ads[i]?.ad_name || '');
-          return afRows.some(r => extractCreativeCode(r.adset_name) === adCode);
-        }).length,
+        afMatched: afMatchedCount,
         afTotal: afRows.length,
+        afUniqueCreatives: afByCode.length,
         afError,
         cachedAt: new Date().toISOString(),
       };
