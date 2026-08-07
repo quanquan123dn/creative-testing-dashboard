@@ -124,14 +124,14 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
     const rev_iaa_d3 = Number(row.rev_iaa_d3) || 0;
     const rev_total_d3 = rev_iap_d3 + rev_iaa_d3;
 
-    // Get accurate buyer count from overview table, divide by installs from mkt table
-    // This matches AppsFlyer MMP: unique_purchasers_d3 / installs * 100
+    // Get accurate buyer count from overview table
+    // Use buyers_d3/total_users from overview (more accurate ratio) since overview may have fewer users than mkt
     const adName = row.ad || '';
     const buyerData = buyerRateMap[adName];
     const iap_buyer_d3 = buyerData?.buyers_d3 || Number(row.iap_buyer_d3_raw) || 0;
-    const buyer_rate_d3 = installs > 0
-      ? (iap_buyer_d3 / installs) * 100
-      : 0;
+    const buyer_rate_d3 = buyerData && buyerData.total_users > 0
+      ? (buyerData.buyers_d3 / buyerData.total_users) * 100
+      : (installs > 0 ? (Number(row.iap_buyer_d3_raw) || 0) / installs * 100 : 0);
 
     const roas_d3 = cost > 0 ? (rev_total_d3 / cost) * 100 : 0;
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
