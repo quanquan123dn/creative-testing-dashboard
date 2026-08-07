@@ -4,8 +4,8 @@
  * Uses POST /api/cohorts/v1/data/app/{app_id} with af_purchase KPI
  */
 
-const AF_TOKEN = process.env.APPSFLYER_TOKEN || '';
-const AF_APP_ID = process.env.AF_APP_ID || 'com.fansipan.epic.stickman.survival.rpg.idle.game';
+const AF_TOKEN = (process.env.APPSFLYER_TOKEN || '').trim();
+const AF_APP_ID = (process.env.AF_APP_ID || 'com.fansipan.epic.stickman.survival.rpg.idle.game').trim();
 
 export interface AFCohortRow {
   adset_name: string;
@@ -55,6 +55,7 @@ export async function getAFCohortBuyerData(
   }
 
   const url = `https://hq1.appsflyer.com/api/cohorts/v1/data/app/${effectiveAppId}`;
+  console.log(`[AF Cohort] Fetching ${effectiveAppId} from=${fromDate} to=${toDate} token_len=${AF_TOKEN.length}`);
   const body = {
     cohort_type: 'user_acquisition',
     from: fromDate,
