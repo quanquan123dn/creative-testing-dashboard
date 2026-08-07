@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getL2CreativeStats, ClickHouseL2Ad } from '@/lib/clickhouse-api';
 import { getAFCohortBuyerDataChunked, AFCohortRow } from '@/lib/af-cohort-api';
 import { getGameConfig } from '@/lib/game-config';
-import { extractCreativeCode } from '@/lib/utils';
 import { unstable_cache, revalidateTag } from 'next/cache';
 
 const CACHE_DURATION = 600; // 10 minutes
@@ -13,31 +12,24 @@ const CACHE_DURATION = 600; // 10 minutes
  * CH provides: installs, cost, impressions, clicks, revenue, ctr, cpm, cpi, ipm
  */
 function mergeAFWithCH(chAds: ClickHouseL2Ad[], afRows: AFCohortRow[]): ClickHouseL2Ad[] {
-  // Aggregate AF rows by creative code (one code can appear in many adsets)
-  const afByCode: Record<string, { totalUsers: number; totalBuyers: number; totalRevenue: number }> = {};
-
+  // Build AF lookup by exact adset name (case-insensitive)
+  // Layer 2 campaign adsets have simple names (VE0209, VE0271, etc.)
+  // This naturally filters out other campaigns whose adsets have longer names
+  const afByName: Record<string, AFCohortRow> = {};
   afRows.forEach(r => {
-    const code = extractCreativeCode(r.adset_name);
-    if (!code) return;
-    const key = code.toUpperCase();
-    if (!afByCode[key]) {
-      afByCode[key] = { totalUsers: 0, totalBuyers: 0, totalRevenue: 0 };
+    if (r.adset_name && r.users > 0) {
+      afByName[r.adset_name.toLowerCase()] = r;
     }
-    afByCode[key].totalUsers += r.users;
-    afByCode[key].totalBuyers += r.unique_buyers_d3;
-    afByCode[key].totalRevenue += r.purchase_revenue_d3;
   });
 
   return chAds.map(ad => {
-    const adCode = extractCreativeCode(ad.ad_name);
-    if (!adCode) return ad;
-
-    const afAgg = afByCode[adCode.toUpperCase()];
-    if (afAgg && afAgg.totalUsers > 0) {
+    // Try exact match: CH ad_name === AF adset_name
+    const afMatch = afByName[ad.ad_name.toLowerCase()];
+    if (afMatch && afMatch.buyer_rate_d3 >= 0) {
       return {
         ...ad,
-        buyer_rate_d3: (afAgg.totalBuyers / afAgg.totalUsers) * 100,
-        iap_buyer_d3: afAgg.totalBuyers,
+        buyer_rate_d3: afMatch.buyer_rate_d3,
+        iap_buyer_d3: afMatch.unique_buyers_d3,
       };
     }
 
@@ -61,14 +53,9 @@ function getCachedL2Stats(campaignName: string, gameId: string, campaignStartDat
       // Merge: AF buyer data + CH everything else
       const mergedAds = mergeAFWithCH(chData.ads, afRows);
 
-      // Count matches
-      const afCodes = new Set(
-        afRows.map(r => extractCreativeCode(r.adset_name).toUpperCase()).filter(Boolean)
-      );
-      const afMatchedCount = chData.ads.filter(ad => {
-        const code = extractCreativeCode(ad.ad_name);
-        return code && afCodes.has(code.toUpperCase());
-      }).length;
+      // Count exact name matches
+      const afNames = new Set(afRows.map(r => r.adset_name.toLowerCase()));
+      const afMatchedCount = chData.ads.filter(ad => afNames.has(ad.ad_name.toLowerCase())).length;
 
       return {
         campaign: chData.campaign,
@@ -76,7 +63,6 @@ function getCachedL2Stats(campaignName: string, gameId: string, campaignStartDat
         queriedAt: chData.queriedAt,
         afMatched: afMatchedCount,
         afTotal: afRows.length,
-        afUniqueCreatives: afCodes.size,
         cachedAt: new Date().toISOString(),
       };
     },
@@ -114,7 +100,7 @@ export async function GET(request: Request) {
         forced: force,
       },
       sources: {
-        appsflyer: { matched: data.afMatched, total: data.afTotal, uniqueCreatives: data.afUniqueCreatives },
+        appsflyer: { matched: data.afMatched, total: data.afTotal },
         clickhouse: { total: data.ads.length },
       },
     });
