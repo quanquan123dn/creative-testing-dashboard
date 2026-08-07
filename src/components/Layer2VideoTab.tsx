@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { scoreAppLovinCreative, FB_LAYER2_DEFAULT_CONFIG, AppLovinDecisionConfig, AppLovinDecisionResult } from '@/lib/applovin-decision-engine';
 import { extractCreativeCode } from '@/lib/utils';
-import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Upload, CheckCircle, Play } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingCart, Download, Trophy, Play } from 'lucide-react';
 import { exportToCSV } from '@/lib/export';
 import VideoPreviewModal from './VideoPreviewModal';
 import Image from 'next/image';
@@ -39,13 +39,6 @@ type StatusFilter = 'all' | 'winner' | 'watching' | 'fail' | 'new';
 
 type SortKey = 'ad_name' | 'test_date' | 'cost' | 'impressions' | 'installs' | 'roi' | 'buyer_rate' | 'buyer_rate_d3' | 'roas_d3' | 'purchasers' | 'ctr' | 'cpm' | 'cpi' | 'ipm' | 'cpa';
 
-interface AFUploadRow {
-  adset_name: string;
-  roas_d3: number;
-  buyer_rate_d3: number;
-  [key: string]: string | number;
-}
-
 export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: string }) {
   const [ads, setAds] = useState<EnrichedAd[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,125 +46,62 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
   const [sortKey, setSortKey] = useState<SortKey>('cost');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [config] = useState<AppLovinDecisionConfig>(FB_LAYER2_DEFAULT_CONFIG);
-  const [uploading, setUploading] = useState(false);
-  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
+  const [dataInfo, setDataInfo] = useState<string | null>(null);
 
   const fetchData = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const forceParam = force ? '?force=true' : '';
-      
-      // Fetch Meta data + uploaded AppsFlyer CSV data in parallel
-      const [metaRes, afUploadRes] = await Promise.all([
-        fetch(`/api/layer2-meta-insights?game=${gameId}${force ? '&force=true' : ''}`),
-        fetch('/api/appsflyer-upload'),
-      ]);
-      
-      const metaJson = await metaRes.json();
-      const afUploadJson = await afUploadRes.json();
-      
-      if (!metaJson.success) throw new Error(metaJson.error || 'Failed to fetch Meta data');
+      const res = await fetch(`/api/clickhouse-l2?game=${gameId}${force ? '&force=true' : ''}`);
+      const json = await res.json();
 
-      const metaAds = (metaJson.data?.ads || []).filter((metaAd: any) => metaAd.spend >= 0.01);
-      
-      // Get uploaded AppsFlyer data (from CSV)
-      const afRows: AFUploadRow[] = afUploadJson.data?.rows || [];
-      
-      if (afRows.length > 0) {
-        setUploadInfo(`📊 AppsFlyer: ${afRows.length} adsets (updated ${new Date(afUploadJson.data.uploaded_at).toLocaleString('vi-VN')})`);
-      } else {
-        setUploadInfo(null);
-      }
+      if (!json.success) throw new Error(json.error || 'Failed to fetch ClickHouse data');
 
-      console.log(`[L2V] Meta ads: ${metaAds.length}, AF uploaded rows: ${afRows.length}`);
+      const chAds = json.data?.ads || [];
+      setDataInfo(`📊 ClickHouse: ${chAds.length} creatives (cached ${new Date(json.data.cachedAt || json.cache?.cachedAt).toLocaleString('vi-VN')})`);
 
-      const enriched: EnrichedAd[] = metaAds.map((metaAd: any) => {
-        const metaCode = extractCreativeCode(metaAd.ad_name);
-        const metaNameLower = metaAd.ad_name.toLowerCase();
-        
-        // Multi-strategy matching (priority order):
-        // 1. Exact creative code (PA0160 === PA0160)
-        // 2. Name substring match
-        // 3. All key words of AF name appear in Meta name
-        const afMatch = afRows.find(r => {
-          const afCode = extractCreativeCode(r.adset_name);
-          const afNameLower = r.adset_name.toLowerCase();
-          if (metaCode && afCode && metaCode === afCode) return true;
-          if (metaNameLower.includes(afNameLower) || afNameLower.includes(metaNameLower)) return true;
-          if (afNameLower.length > 5) {
-            const afWords = afNameLower.split(/[\s_\-]+/).filter((w: string) => w.length > 3);
-            if (afWords.length > 0 && afWords.every((w: string) => metaNameLower.includes(w))) return true;
-          }
-          return false;
-        });
-
-        const spend = metaAd.spend || 0;
-        const impressions = metaAd.impressions || 0;
-        const installs = metaAd.installs || 0;
-        const cpm = metaAd.cpm || 0;
-        const cpi = metaAd.cpi || 0;
-        const ctr = metaAd.ctr || 0;
-        const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
-
-        const roas_d3 = afMatch ? afMatch.roas_d3 : 0;
-        const buyer_rate_d3 = afMatch ? afMatch.buyer_rate_d3 : 0;
-
-        // Use actual unique_purchasers_d3 from CSV if available, otherwise estimate
-        const actual_purchasers = afMatch?.unique_purchasers_d3 != null ? Number(afMatch.unique_purchasers_d3) : 0;
-        const estimated_purchasers = actual_purchasers > 0
-          ? actual_purchasers
-          : (afMatch && buyer_rate_d3 > 0 && installs > 0
-            ? Math.round((buyer_rate_d3 / 100) * installs)
-            : 0);
+      const enriched: EnrichedAd[] = chAds.map((ad: any) => {
+        const roas_d3 = ad.roas_d3 || 0;
+        const buyer_rate_d3 = ad.buyer_rate_d3 || 0;
+        const cost = ad.cost || 0;
+        const installs = ad.installs || 0;
+        const purchasers = ad.iap_buyer_d3 || 0;
+        const cpa = purchasers > 0 ? cost / purchasers : 0;
 
         return {
-          ad_name: metaAd.ad_name,
-          test_date: metaAd.created_time || metaAd.date_start || '',
-          campaign: metaAd.campaign || 'Layer 2',
-          media_source: 'Facebook',
-          impressions,
-          clicks: metaAd.clicks || 0,
+          ad_name: ad.ad_name,
+          test_date: ad.first_day_ad || '',
+          campaign: ad.campaign || 'Layer 2',
+          media_source: ad.media_source || 'Facebook',
+          impressions: ad.impressions || 0,
+          clicks: ad.clicks || 0,
           installs,
-          cost: spend,
-          revenue: 0,
+          cost,
+          revenue: ad.rev_total_d3 || 0,
           roi: roas_d3,
-          purchasers: estimated_purchasers,
-          purchase_revenue: 0,
-          ctr,
-          cpi,
-          cpm,
-          ipm,
-          cpa: 0,
+          purchasers,
+          purchase_revenue: ad.rev_iap_d3 || 0,
+          ctr: ad.ctr || 0,
+          cpi: ad.cpi || 0,
+          cpm: ad.cpm || 0,
+          ipm: ad.ipm || 0,
+          cpa,
           buyer_rate: buyer_rate_d3,
           buyer_rate_d3,
           roas_d3,
-          has_af_data: !!afMatch,
-          video_id: metaAd.video_id || '',
-          thumbnail_url: metaAd.thumbnail_url || '',
-          // If adset is still ACTIVE → "Testing", if PAUSED → score Pass/Iterate/Fail
-          decision_result: (metaAd.adset_status === 'ACTIVE')
-            ? {
-                decision: 'new' as const,
-                label: 'Testing',
-                emoji: '🧪',
-                hexColor: '#38bdf8',
-                hexBg: 'rgba(56,189,248,0.12)',
-                hexBorder: 'rgba(56,189,248,0.3)',
-                reason: 'Adset đang chạy — chờ kết quả',
-                warnings: [],
-              }
-            : scoreAppLovinCreative({
-                roas_3d: roas_d3,
-                buyer_rate: buyer_rate_d3,
-                spend,
-                installs,
-                cost: spend,
-                sales_3d: afMatch ? 999 : 0,
-              }, config),
+          has_af_data: true, // ClickHouse always has full data
+          video_id: '',
+          thumbnail_url: '',
+          decision_result: scoreAppLovinCreative({
+            roas_3d: roas_d3,
+            buyer_rate: buyer_rate_d3,
+            spend: cost,
+            installs,
+            cost,
+            sales_3d: purchasers,
+          }, config),
         };
       });
 
@@ -185,47 +115,6 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      // Append all selected files
-      Array.from(files).forEach(file => formData.append('file', file));
-      
-      const res = await fetch('/api/appsflyer-upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      
-      alert(`✅ Upload thành công! ${json.message}`);
-      // Reload data
-      fetchData(true);
-    } catch (err: unknown) {
-      alert(`❌ Upload lỗi: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleClearData = async () => {
-    if (!confirm('Xóa toàn bộ dữ liệu AppsFlyer đã upload?')) return;
-    try {
-      const res = await fetch('/api/appsflyer-upload', { method: 'DELETE' });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      alert('✅ Đã xóa dữ liệu AppsFlyer');
-      fetchData(true);
-    } catch (err: unknown) {
-      alert(`❌ Lỗi: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -266,9 +155,12 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
   const totalSpend = ads.reduce((s, a) => s + a.cost, 0);
   const totalInstalls = ads.reduce((s, a) => s + a.installs, 0);
   const totalImpressions = ads.reduce((s, a) => s + a.impressions, 0);
-  const adsWithAF = ads.filter(a => a.has_af_data);
-  const avgRoasD3 = adsWithAF.length > 0 ? adsWithAF.reduce((s, a) => s + a.roas_d3, 0) / adsWithAF.length : 0;
-  const avgBuyerD3 = adsWithAF.length > 0 ? adsWithAF.reduce((s, a) => s + a.buyer_rate_d3, 0) / adsWithAF.length : 0;
+  // Weighted avg ROAS D3 by cost
+  const avgRoasD3 = totalSpend > 0
+    ? ads.reduce((s, a) => s + (a.roas_d3 / 100) * a.cost, 0) / totalSpend * 100
+    : 0;
+  const totalPurchasers = ads.reduce((s, a) => s + a.purchasers, 0);
+  const avgBuyerD3 = totalInstalls > 0 ? (totalPurchasers / totalInstalls) * 100 : 0;
   const avgCPI = totalInstalls > 0 ? totalSpend / totalInstalls : 0;
   const winners = ads.filter(a => a.decision_result.decision === 'winner').length;
   const watching = ads.filter(a => a.decision_result.decision === 'watching').length;
@@ -308,11 +200,11 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
     { id: 'l2v-spend', icon: <DollarSign size={20} />, label: 'Total Spend', value: formatCurrency(totalSpend), color: '#8b5cf6', sub: `${ads.length} ads` },
     { id: 'l2v-roi', icon: <TrendingUp size={20} />, label: 'ROAS D3', value: `${avgRoasD3.toFixed(1)}%`, color: getRoiColor(avgRoasD3), sub: `Benchmark: 68%`, highlight: true },
     { id: 'l2v-buyer', icon: <ShoppingCart size={20} />, label: 'Buyer Rate D3', value: `${avgBuyerD3.toFixed(1)}%`, color: avgBuyerD3 >= 9.5 ? '#10b981' : avgBuyerD3 >= 6 ? '#f59e0b' : '#ef4444', sub: `Benchmark: 9.5%` },
-    { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${adsWithAF.length} matched` },
+    { id: 'l2v-installs', icon: <Download size={20} />, label: 'Total Installs', value: totalInstalls.toLocaleString(), color: '#06b6d4', sub: `${totalPurchasers} buyers D3` },
     { id: 'l2v-decisions', icon: <Trophy size={20} />, label: 'Decisions', color: '#8b5cf6', sub: `${winners + watching + fails} scored`, isDecision: true, winners, watching, fails },
   ];
 
-  const testedAds = ads.filter(a => a.has_af_data && a.roas_d3 > 0);
+  const testedAds = ads.filter(a => a.roas_d3 > 0);
   const roiLeaderboard = [...testedAds].sort((a, b) => b.roas_d3 - a.roas_d3).slice(0, 5).map(a => ({ name: a.ad_name, value: a.roas_d3, formatted: `${a.roas_d3.toFixed(1)}%` }));
   const buyerLeaderboard = [...testedAds].sort((a, b) => b.buyer_rate_d3 - a.buyer_rate_d3).slice(0, 5).map(a => ({ name: a.ad_name, value: a.buyer_rate_d3, formatted: `${a.buyer_rate_d3.toFixed(1)}%` }));
 
@@ -402,13 +294,6 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
               style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
               🔄 Sync
             </button>
-            {/* Upload CSV button */}
-            <input type="file" ref={fileInputRef} accept=".csv,.tsv,.txt" onChange={handleUpload} className="hidden" multiple />
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
-              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa' }}>
-              {uploading ? '⏳ Uploading...' : <><Upload size={12} /> Upload CSV</>}
-            </button>
           </div>
           {/* Status Filter */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -435,21 +320,12 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
             })}
           </div>
           <div className="flex items-center gap-3">
-            {uploadInfo && (
+            {dataInfo && (
               <span className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
-                <CheckCircle size={12} /> {uploadInfo}
+                ✅ {dataInfo}
               </span>
             )}
-            {uploadInfo && (
-              <button onClick={handleClearData}
-                className="px-2 py-1 rounded text-[10px] font-medium transition-all hover:scale-105"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
-                title="Xóa dữ liệu AppsFlyer đã upload"
-              >
-                🗑️ Clear
-              </button>
-            )}
-            <span className="text-xs" style={{ color: '#64748b' }}>Last 14 days (via AppsFlyer)</span>
+            <span className="text-xs" style={{ color: '#64748b' }}>Auto-sync via ClickHouse</span>
             <button
               onClick={() => exportToCSV(
                 ads.map(a => ({
