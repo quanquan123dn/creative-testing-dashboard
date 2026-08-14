@@ -114,10 +114,14 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
   // Fetch all ads metadata
   const adsMetadata = await getCampaignAds(campaign.id, adAccountId);
 
-  // Build a lookup map for ad metadata
+  // Build a lookup map for ad metadata + track APP_INSTALLS ads
   const adMap: Record<string, typeof adsMetadata[0]> = {};
+  const appInstallAdIds = new Set<string>();
   adsMetadata.forEach(ad => {
     adMap[ad.id] = ad;
+    if (ad.adset?.optimization_goal === 'APP_INSTALLS') {
+      appInstallAdIds.add(ad.id);
+    }
   });
 
   // Fetch campaign-level insights with ad breakdown (much more efficient than per-ad calls)
@@ -251,8 +255,17 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     agg.frequency = agg.reach > 0 ? agg.impressions / agg.reach : 0;
   });
 
+  // Filter: only include ads from APP_INSTALLS adsets
+  const appInstallAdNames = new Set<string>();
+  Object.values(byAdId).forEach(ad => {
+    if (appInstallAdIds.has(ad.ad_id)) {
+      appInstallAdNames.add(ad.ad_name);
+    }
+  });
+  const filteredAds = Object.values(aggByName).filter(ad => appInstallAdNames.has(ad.ad_name));
+
   return {
-    ads: Object.values(aggByName),
+    ads: filteredAds,
     campaign,
     lastSync: new Date().toISOString(),
   };
