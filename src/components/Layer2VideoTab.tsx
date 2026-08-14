@@ -105,7 +105,16 @@ export default function Layer2VideoTab({ gameId = 'epic-stickman' }: { gameId?: 
         };
       });
 
-      setAds(enriched);
+      // For stickman-defense: only show ads with >= 10,000 impressions
+      const MIN_IMPRESSIONS: Record<string, number> = {
+        'stickman-defense': 10000,
+      };
+      const minImp = MIN_IMPRESSIONS[gameId] || 0;
+      const filtered = minImp > 0
+        ? enriched.filter(a => a.impressions >= minImp)
+        : enriched;
+
+      setAds(filtered);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {

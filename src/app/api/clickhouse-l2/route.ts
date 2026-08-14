@@ -8,13 +8,14 @@ const CACHE_DURATION = 600; // 10 minutes
 
 /**
  * Merge AppsFlyer buyer data (primary, accurate) with ClickHouse metrics.
- * AF provides: buyer_rate_d3, unique_buyers_d3 (grouped by af_adset, aggregated by creative code)
+ * AF provides: buyer_rate_d3, unique_buyers_d3 (grouped by af_adset)
  * CH provides: installs, cost, impressions, clicks, revenue, ctr, cpm, cpi, ipm
+ * 
+ * Smart matching: AF data is cross-campaign (can't filter by campaign).
+ * If AF users ≈ CH installs (within 30%), adset is likely exclusive to L2 → use AF.
+ * If AF users >> CH installs, adset exists in multiple campaigns → use CH fallback.
  */
 function mergeAFWithCH(chAds: ClickHouseL2Ad[], afRows: AFCohortRow[]): ClickHouseL2Ad[] {
-  // Build AF lookup by exact adset name (case-insensitive)
-  // Layer 2 campaign adsets have simple names (VE0209, VE0271, etc.)
-  // This naturally filters out other campaigns whose adsets have longer names
   const afByName: Record<string, AFCohortRow> = {};
   afRows.forEach(r => {
     if (r.adset_name && r.users > 0) {
@@ -23,9 +24,16 @@ function mergeAFWithCH(chAds: ClickHouseL2Ad[], afRows: AFCohortRow[]): ClickHou
   });
 
   return chAds.map(ad => {
-    // Try exact match: CH ad_name === AF adset_name
     const afMatch = afByName[ad.ad_name.toLowerCase()];
-    if (afMatch && afMatch.buyer_rate_d3 >= 0) {
+    if (!afMatch) return ad;
+
+    // Check if AF users ≈ CH installs (within 30% tolerance)
+    // If AF users is much larger, this adset exists in other campaigns too
+    const ratio = ad.installs > 0 ? afMatch.users / ad.installs : 999;
+    const isExclusive = ratio <= 1.3; // AF users should be ≈ CH installs or less
+
+    if (isExclusive) {
+      // Adset is exclusive to L2 campaign — use AF data (accurate)
       return {
         ...ad,
         buyer_rate_d3: afMatch.buyer_rate_d3,
@@ -33,7 +41,7 @@ function mergeAFWithCH(chAds: ClickHouseL2Ad[], afRows: AFCohortRow[]): ClickHou
       };
     }
 
-    // No AF match — keep ClickHouse data as fallback
+    // Adset exists in multiple campaigns — keep CH overview data as fallback
     return ad;
   });
 }

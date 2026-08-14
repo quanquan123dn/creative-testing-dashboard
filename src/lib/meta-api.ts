@@ -205,20 +205,58 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     agg.frequency = agg.reach > 0 ? agg.impressions / agg.reach : 0;
   });
 
-  // Step 2: Deduplicate by ad_name — keep the ad_id with highest impressions
-  // (same creative may run in multiple ad sets, each with its own 10K cap)
-  const bestByName: Record<string, AdInsight> = {};
+  // Step 2: Aggregate by ad_name — same creative may run in multiple adsets
+  // Sum spend, impressions, clicks, installs, etc. across all instances
+  const aggByName: Record<string, AdInsight> = {};
   Object.values(byAdId).forEach(ad => {
     const key = ad.ad_name;
-    if (!bestByName[key] || ad.impressions > bestByName[key].impressions) {
-      bestByName[key] = ad;
+    if (!aggByName[key]) {
+      aggByName[key] = { ...ad };
+    } else {
+      const agg = aggByName[key];
+      agg.spend += ad.spend;
+      agg.impressions += ad.impressions;
+      agg.clicks += ad.clicks;
+      agg.installs += ad.installs;
+      agg.reach += ad.reach;
+      agg.video_3s_views += ad.video_3s_views;
+      agg.video_thruplay += ad.video_thruplay;
+      // Keep the ad_id/status from the instance with most spend (most representative)
+      if (ad.spend > (aggByName[key].spend - ad.spend)) {
+        agg.ad_id = ad.ad_id;
+        agg.status = ad.status;
+        agg.adset_status = ad.adset_status;
+        agg.thumbnail_url = ad.thumbnail_url || agg.thumbnail_url;
+        agg.video_id = ad.video_id || agg.video_id;
+      }
     }
   });
 
-  const adsData: AdInsight[] = Object.values(bestByName);
+  // Recalculate derived metrics after aggregation
+  Object.values(aggByName).forEach(agg => {
+    agg.ipm = agg.impressions > 0 ? (agg.installs / agg.impressions) * 1000 : 0;
+    agg.cpi = agg.installs > 0 ? agg.spend / agg.installs : 0;
+    agg.cpc = agg.clicks > 0 ? agg.spend / agg.clicks : 0;
+    agg.cpm = agg.impressions > 0 ? (agg.spend / agg.impressions) * 1000 : 0;
+    agg.ctr = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0;
+    agg.click_to_install = agg.clicks > 0 ? (agg.installs / agg.clicks) * 100 : 0;
+    agg.hook_rate = agg.impressions > 0 ? (agg.video_3s_views / agg.impressions) * 100 : 0;
+    agg.hold_rate = agg.video_3s_views > 0 ? (agg.video_thruplay / agg.video_3s_views) * 100 : 0;
+    agg.frequency = agg.reach > 0 ? agg.impressions / agg.reach : 0;
+  });
 
-  // Filter: only include ads from APP_INSTALLS adsets
-  const filteredAds = adsData.filter(ad => appInstallAdIds.has(ad.ad_id));
+  const adsData: AdInsight[] = Object.values(aggByName);
+
+  // Build set of ad_names that have at least one APP_INSTALLS ad_id
+  const appInstallAdNames = new Set<string>();
+  Object.values(byAdId).forEach(ad => {
+    if (appInstallAdIds.has(ad.ad_id)) {
+      appInstallAdNames.add(ad.ad_name);
+    }
+  });
+
+  // Filter: only include ads that have at least one APP_INSTALLS instance
+  const filteredAds = adsData.filter(ad => appInstallAdNames.has(ad.ad_name));
 
   // Note: Only ads with actual insights data and APP_INSTALLS optimization are included.
   // Ads in APP_EVENTS adsets (wrong setup) are excluded.
