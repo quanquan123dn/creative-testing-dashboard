@@ -73,12 +73,24 @@ export async function getCampaignAds(campaignId: string, adAccountId?: string): 
   adset?: { status: string; optimization_goal?: string };
   creative: { thumbnail_url?: string; video_id?: string };
 }[]> {
-  const AD_ACCOUNT_ID = adAccountId || process.env.META_AD_ACCOUNT_ID!;
-  const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/ads`, {
+  // Query ads from campaign directly (not account-wide) to get all campaign ads
+  const firstPage = await metaFetch(`/${campaignId}/ads`, {
     fields: 'id,name,status,created_time,adset{status,optimization_goal},creative{thumbnail_url,video_id}',
     limit: '200',
   });
-  return data.data || [];
+
+  let allAds = firstPage.data || [];
+  let nextUrl = firstPage.paging?.next || null;
+
+  // Paginate through all results
+  while (nextUrl) {
+    const res = await fetch(nextUrl, { cache: 'no-store' });
+    const page = await res.json();
+    allAds = [...allAds, ...(page.data || [])];
+    nextUrl = page.paging?.next || null;
+  }
+
+  return allAds;
 }
 
 function extractAction(
