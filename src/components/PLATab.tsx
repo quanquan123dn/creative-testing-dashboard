@@ -84,6 +84,18 @@ export default function PLATab({ gameId = 'epic-stickman' }: { gameId?: string }
   const sortedAds = [...ads].sort((a, b) => {
     const aVal = (a as any)[sortKey];
     const bVal = (b as any)[sortKey];
+    // Date sort: parse DD/MM/YYYY or D/M/YYYY format
+    if (sortKey === 'test_date') {
+      const parseDate = (s: string) => {
+        if (!s) return 0;
+        const parts = s.split('/');
+        if (parts.length === 3) return new Date(+parts[2], +parts[1] - 1, +parts[0]).getTime();
+        return new Date(s).getTime() || 0;
+      };
+      const aTime = parseDate(aVal as string);
+      const bTime = parseDate(bVal as string);
+      return sortDir === 'asc' ? aTime - bTime : bTime - aTime;
+    }
     if (typeof aVal === 'string') {
       const aCode = extractCreativeCode(aVal);
       const bCode = extractCreativeCode(bVal as string);
