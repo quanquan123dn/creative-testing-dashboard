@@ -184,8 +184,8 @@ export async function GET(request: Request) {
           batchCompleteIsNew ? { winners: videoWinners.length, kills: videoKillCount, total: totalVideoAds } : null
         );
         notificationSent = true;
-      } catch (e: unknown) {
-        discordError = e instanceof Error ? e.message : 'Unknown Discord error';
+      } catch (err: unknown) {
+        discordError = (err as Error)?.message || 'Unknown Discord error';
         console.error('Discord notification failed:', discordError);
       }
     }
