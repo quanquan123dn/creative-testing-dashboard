@@ -44,6 +44,13 @@ export async function GET(request: Request) {
   }
 
   try {
+    // === TEMPORARILY PAUSED ===
+    // User requested to pause notifications (2026-08-17)
+    return NextResponse.json({
+      success: true,
+      paused: true,
+      message: 'Cron notifications are temporarily paused',
+    });
     // === LAYER 1 VIDEO: Check Winners ===
     let videoWinners: AlertCreative[] = [];
     let totalVideoAds = 0;
