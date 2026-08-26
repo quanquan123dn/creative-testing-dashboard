@@ -135,7 +135,7 @@ export function scoreCreative(
 
 export function getIPMBarColor(ipm: number, config: DecisionConfig = DEFAULT_CONFIG): string {
   if (ipm >= config.ipm_winner) return '#10b981';
-  if (ipm >= config.ipm_watching) return '#f59e0b';
+  if (ipm >= 5) return '#f59e0b';
   if (ipm > 0) return '#ef4444';
   return '#475569';
 }
