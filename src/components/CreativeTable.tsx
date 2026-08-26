@@ -409,11 +409,11 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       key={tag}
                       className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors"
                       style={{
-                        color: checked ? '#fbbf24' : '#94a3b8',
-                        background: checked ? 'rgba(245,158,11,0.08)' : 'transparent',
+                        color: '#94a3b8',
+                        background: checked ? 'rgba(255,255,255,0.04)' : 'transparent',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = checked ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.03)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = checked ? 'rgba(245,158,11,0.08)' : 'transparent')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = checked ? 'rgba(255,255,255,0.04)' : 'transparent')}
                     >
                       <input
                         type="checkbox"
