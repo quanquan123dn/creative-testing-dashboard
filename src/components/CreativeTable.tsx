@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
-import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle, Download, X, ArrowUpDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Play, AlertTriangle, Trophy, Clock, XCircle, Circle, Download, X, ArrowUpDown, Search } from 'lucide-react';
 import Image from 'next/image';
 import { extractCreativeCode } from '@/lib/utils';
 import VideoPreviewModal from './VideoPreviewModal';
@@ -103,6 +103,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
   const [filterL2Status, setFilterL2Status] = useState<string>('all');
   const [filterTag, setFilterTag] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
@@ -149,6 +150,10 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
 
   const filtered = useMemo(() => {
     let result = [...ads];
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((a) => a.ad_name.toLowerCase().includes(q));
+    }
     if (filterDecision !== 'all') {
       result = result.filter((a) => a.decision_result.decision === filterDecision);
     }
@@ -177,7 +182,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
     return result;
-  }, [ads, sortKey, sortDir, filterDecision, filterL2Status, filterTag, getTag]);
+  }, [ads, sortKey, sortDir, filterDecision, filterL2Status, filterTag, getTag, searchQuery]);
 
   const filterCounts = useMemo(() => {
     const counts = { all: 0, winner: 0, watching: 0, kill: 0, new: 0 };
@@ -260,6 +265,33 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           <Download size={13} />
           Export
         </button>
+
+        {/* Search */}
+        <div className="relative" style={{ minWidth: 180 }}>
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#475569' }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search creative..."
+            className="w-full pl-8 pr-7 py-1.5 rounded text-xs font-medium transition-all"
+            style={{
+              background: searchQuery ? 'rgba(59,130,246,0.1)' : '#0f172a',
+              border: `1px solid ${searchQuery ? 'rgba(59,130,246,0.4)' : '#1e2d4a'}`,
+              color: '#e2e8f0',
+              outline: 'none',
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              style={{ color: '#64748b' }}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
         <div className="flex gap-1" style={{ paddingRight: '1rem', borderRight: '1px solid #1e2d4a' }}>
           {(['all', 'winner', 'watching', 'kill', 'new'] as FilterDecision[]).map((d) => {
             const labels: Record<FilterDecision, React.ReactNode> = {
