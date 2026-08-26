@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { EnrichedAd } from '@/app/page';
 import { DecisionConfig, getIPMBarColor } from '@/lib/decision-engine';
@@ -102,11 +102,24 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
   const [filterL2Status, setFilterL2Status] = useState<string>('all');
-  const [filterTag, setFilterTag] = useState<string>('all');
+  const [filterTag, setFilterTag] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close tag dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setTagDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Build tag lookup: extract code prefix from ad_name (e.g. "TSH009_VE0213_xxx" -> "TSH009_VE0213")
   const getTag = useCallback((adName: string): string => {
@@ -163,8 +176,8 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         return l2 === filterL2Status;
       });
     }
-    if (filterTag !== 'all') {
-      result = result.filter((a) => getTag(a.ad_name) === filterTag);
+    if (filterTag.size > 0) {
+      result = result.filter((a) => filterTag.has(getTag(a.ad_name)));
     }
     result.sort((a, b) => {
       if (sortKey === 'ad_name') {
@@ -346,27 +359,83 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
           })}
         </div>
 
-        {/* Tag filter dropdown */}
-        <div className="flex items-center gap-2" style={{ borderLeft: '1px solid #1e2d4a', paddingLeft: '0.75rem' }}>
+        {/* Tag filter dropdown - multi-select */}
+        <div className="flex items-center gap-2" style={{ borderLeft: '1px solid #1e2d4a', paddingLeft: '0.75rem' }} ref={tagDropdownRef}>
           <span className="text-xs" style={{ color: '#64748b' }}>Tag:</span>
-          <select
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-            className="px-2.5 py-1 rounded text-xs font-medium transition-all"
-            style={{
-              background: filterTag !== 'all' ? 'rgba(245,158,11,0.15)' : '#0f172a',
-              border: `1px solid ${filterTag !== 'all' ? 'rgba(245,158,11,0.4)' : '#1e2d4a'}`,
-              color: filterTag !== 'all' ? '#fbbf24' : '#94a3b8',
-              cursor: 'pointer',
-              maxWidth: 180,
-              outline: 'none',
-            }}
-          >
-            <option value="all">All tags ({ads.filter(a => getTag(a.ad_name)).length})</option>
-            {uniqueTags.filter(t => t !== 'all').map(tag => (
-              <option key={tag} value={tag}>{tag} ({ads.filter(a => getTag(a.ad_name) === tag).length})</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
+              className="px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5"
+              style={{
+                background: filterTag.size > 0 ? 'rgba(245,158,11,0.15)' : '#0f172a',
+                border: `1px solid ${filterTag.size > 0 ? 'rgba(245,158,11,0.4)' : '#1e2d4a'}`,
+                color: filterTag.size > 0 ? '#fbbf24' : '#94a3b8',
+                cursor: 'pointer',
+                minWidth: 120,
+                maxWidth: 280,
+              }}
+            >
+              <span className="truncate">
+                {filterTag.size === 0 ? `All tags (${ads.filter(a => getTag(a.ad_name)).length})` :
+                 filterTag.size === 1 ? `${Array.from(filterTag)[0]}` :
+                 `${filterTag.size} tags selected`}
+              </span>
+              <ChevronDown size={12} className={`transition-transform ${tagDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {filterTag.size > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setFilterTag(new Set()); }}
+                className="absolute -right-5 top-1/2 -translate-y-1/2"
+                style={{ color: '#64748b' }}
+                title="Clear tags"
+              >
+                <X size={12} />
+              </button>
+            )}
+            {tagDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 rounded-lg overflow-hidden" style={{
+                background: '#0f1729',
+                border: '1px solid #1e2d4a',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                minWidth: 220,
+                maxHeight: 320,
+                overflowY: 'auto',
+              }}>
+                {uniqueTags.filter(t => t !== 'all').map(tag => {
+                  const count = ads.filter(a => getTag(a.ad_name) === tag).length;
+                  const checked = filterTag.has(tag);
+                  return (
+                    <label
+                      key={tag}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors"
+                      style={{
+                        color: checked ? '#fbbf24' : '#94a3b8',
+                        background: checked ? 'rgba(245,158,11,0.08)' : 'transparent',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = checked ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.03)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = checked ? 'rgba(245,158,11,0.08)' : 'transparent')}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setFilterTag(prev => {
+                            const next = new Set(prev);
+                            if (next.has(tag)) next.delete(tag);
+                            else next.add(tag);
+                            return next;
+                          });
+                        }}
+                        style={{ accentColor: '#f59e0b', width: 13, height: 13, cursor: 'pointer' }}
+                      />
+                      <span className="truncate">{tag}</span>
+                      <span style={{ color: '#475569', marginLeft: 'auto' }}>({count})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
