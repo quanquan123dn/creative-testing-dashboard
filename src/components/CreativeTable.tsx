@@ -347,6 +347,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               <th style={{ minWidth: 220, ...thStyle('ad_name'), cursor: 'pointer' }} onClick={() => handleSort('ad_name')}>
                 Creative <SortIcon column="ad_name" sortKey={sortKey} sortDir={sortDir} />
               </th>
+              <th style={{ minWidth: 100 }}>Tag ĐH</th>
 
               <th style={thStyle('spend')} onClick={() => handleSort('spend')}>
                 Spend <SortIcon column="spend" sortKey={sortKey} sortDir={sortDir} />
@@ -380,7 +381,6 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               </th>
               <th style={{ minWidth: 120 }}>L1 Status</th>
               <th style={{ minWidth: 100 }}>L2 Status</th>
-              <th style={{ minWidth: 100 }}>Tag ĐH</th>
             </tr>
           </thead>
           <tbody>
@@ -457,6 +457,20 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       </div>
                     </div>
                   </td>
+                  <td>
+                    {getTag(ad.ad_name) ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{
+                        background: 'rgba(245,158,11,0.12)',
+                        color: '#fbbf24',
+                        border: '1px solid rgba(245,158,11,0.25)',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {getTag(ad.ad_name)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#334155' }}>—</span>
+                    )}
+                  </td>
 
                   <td className="font-medium text-slate-200">{fmtCurr(ad.spend)}</td>
                   <td style={{ color: '#94a3b8' }}>
@@ -510,20 +524,6 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       {(!ad.layer2_status || ad.layer2_status === 'Chưa test') && '⏳'}
                       {ad.layer2_status || 'Chưa test'}
                     </span>
-                  </td>
-                  <td>
-                    {getTag(ad.ad_name) ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{
-                        background: 'rgba(245,158,11,0.12)',
-                        color: '#fbbf24',
-                        border: '1px solid rgba(245,158,11,0.25)',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {getTag(ad.ad_name)}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#334155' }}>—</span>
-                    )}
                   </td>
                 </tr>
               ))
