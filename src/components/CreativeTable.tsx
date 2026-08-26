@@ -10,6 +10,9 @@ import { extractCreativeCode } from '@/lib/utils';
 import VideoPreviewModal from './VideoPreviewModal';
 import CompareModal from './CompareModal';
 import { exportToCSV } from '@/lib/export';
+import tagDataRaw from '@/lib/tag-data.json';
+
+const tagData: Record<string, string> = tagDataRaw;
 
 interface CreativeTableProps {
   ads: EnrichedAd[];
@@ -99,9 +102,27 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterDecision, setFilterDecision] = useState<FilterDecision>('all');
   const [filterL2Status, setFilterL2Status] = useState<string>('all');
+  const [filterTag, setFilterTag] = useState<string>('all');
   const [previewAd, setPreviewAd] = useState<EnrichedAd | null>(null);
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+
+  // Build tag lookup: extract code prefix from ad_name (e.g. "TSH009_VE0213_xxx" -> "TSH009_VE0213")
+  const getTag = useCallback((adName: string): string => {
+    const match = adName.match(/^(TSH\d+_VE\d+)/);
+    if (match) return tagData[match[1]] || '';
+    return '';
+  }, []);
+
+  // Unique tags for dropdown
+  const uniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    ads.forEach(ad => {
+      const t = getTag(ad.ad_name);
+      if (t) tags.add(t);
+    });
+    return ['all', ...Array.from(tags).sort()];
+  }, [ads, getTag]);
 
   const toggleCompare = useCallback((adId: string) => {
     setCompareSet(prev => {
@@ -137,6 +158,9 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
         return l2 === filterL2Status;
       });
     }
+    if (filterTag !== 'all') {
+      result = result.filter((a) => getTag(a.ad_name) === filterTag);
+    }
     result.sort((a, b) => {
       if (sortKey === 'ad_name') {
         const aName = extractCreativeCode(a.ad_name);
@@ -153,7 +177,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
     return result;
-  }, [ads, sortKey, sortDir, filterDecision, filterL2Status]);
+  }, [ads, sortKey, sortDir, filterDecision, filterL2Status, filterTag, getTag]);
 
   const filterCounts = useMemo(() => {
     const counts = { all: 0, winner: 0, watching: 0, kill: 0, new: 0 };
@@ -289,6 +313,29 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
             );
           })}
         </div>
+
+        {/* Tag filter dropdown */}
+        <div className="flex items-center gap-2" style={{ borderLeft: '1px solid #1e2d4a', paddingLeft: '0.75rem' }}>
+          <span className="text-xs" style={{ color: '#64748b' }}>Tag:</span>
+          <select
+            value={filterTag}
+            onChange={(e) => setFilterTag(e.target.value)}
+            className="px-2.5 py-1 rounded text-xs font-medium transition-all"
+            style={{
+              background: filterTag !== 'all' ? 'rgba(245,158,11,0.15)' : '#0f172a',
+              border: `1px solid ${filterTag !== 'all' ? 'rgba(245,158,11,0.4)' : '#1e2d4a'}`,
+              color: filterTag !== 'all' ? '#fbbf24' : '#94a3b8',
+              cursor: 'pointer',
+              maxWidth: 180,
+              outline: 'none',
+            }}
+          >
+            <option value="all">All tags ({ads.filter(a => getTag(a.ad_name)).length})</option>
+            {uniqueTags.filter(t => t !== 'all').map(tag => (
+              <option key={tag} value={tag}>{tag} ({ads.filter(a => getTag(a.ad_name) === tag).length})</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -333,13 +380,14 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               </th>
               <th style={{ minWidth: 120 }}>L1 Status</th>
               <th style={{ minWidth: 100 }}>L2 Status</th>
+              <th style={{ minWidth: 100 }}>Tag ĐH</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 13 }).map((_, j) => (
+                  {Array.from({ length: 14 }).map((_, j) => (
                     <td key={j}>
                       <div className="h-4 rounded shimmer" style={{ width: j === 0 ? 180 : 60 }} />
                     </td>
@@ -348,7 +396,7 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={13} className="text-center py-16" style={{ color: '#475569' }}>
+                <td colSpan={14} className="text-center py-16" style={{ color: '#475569' }}>
                   {ads.length === 0
                     ? 'No ad data found for this campaign and date range.'
                     : 'No ads match the current filters.'}
@@ -462,6 +510,20 @@ export default function CreativeTable({ ads, loading, config }: CreativeTablePro
                       {(!ad.layer2_status || ad.layer2_status === 'Chưa test') && '⏳'}
                       {ad.layer2_status || 'Chưa test'}
                     </span>
+                  </td>
+                  <td>
+                    {getTag(ad.ad_name) ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{
+                        background: 'rgba(245,158,11,0.12)',
+                        color: '#fbbf24',
+                        border: '1px solid rgba(245,158,11,0.25)',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {getTag(ad.ad_name)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#334155' }}>—</span>
+                    )}
                   </td>
                 </tr>
               ))
