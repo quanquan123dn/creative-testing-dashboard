@@ -65,6 +65,23 @@ export async function findCampaign(campaignNameOverride?: string, adAccountId?: 
   return match || null;
 }
 
+/**
+ * Find multiple campaigns by name. Supports pipe-separated names in META_CAMPAIGN_NAME.
+ */
+export async function findCampaigns(campaignNameOverride?: string, adAccountId?: string): Promise<CampaignSummary[]> {
+  const AD_ACCOUNT_ID = adAccountId || process.env.META_AD_ACCOUNT_ID!;
+  const RAW_NAMES = campaignNameOverride || process.env.META_CAMPAIGN_NAME!;
+  const campaignNames = RAW_NAMES.split('|').map(n => n.trim().toLowerCase());
+
+  const data = await metaFetch(`/act_${AD_ACCOUNT_ID}/campaigns`, {
+    fields: 'id,name,status',
+    limit: '200',
+  });
+
+  const allCampaigns: CampaignSummary[] = data.data || [];
+  return allCampaigns.filter(c => campaignNames.includes(c.name.toLowerCase().trim()));
+}
+
 export async function getCampaignAds(campaignId: string, adAccountId?: string): Promise<{
   id: string;
   name: string;
@@ -106,53 +123,56 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
   campaign: CampaignSummary | null;
   lastSync: string;
 }> {
-  const campaign = await findCampaign(campaignNameOverride, adAccountId);
-  if (!campaign) {
+  const campaigns = await findCampaigns(campaignNameOverride, adAccountId);
+  if (campaigns.length === 0) {
     return { ads: [], campaign: null, lastSync: new Date().toISOString() };
   }
 
-  // Fetch all ads metadata
-  const adsMetadata = await getCampaignAds(campaign.id, adAccountId);
-
-  // Build a lookup map for ad metadata + track APP_INSTALLS ads
-  const adMap: Record<string, typeof adsMetadata[0]> = {};
+  // Collect ads metadata and insights from ALL campaigns
+  let allAdsMetadata: Awaited<ReturnType<typeof getCampaignAds>> = [];
+  let allInsightRows: Record<string, unknown>[] = [];
   const appInstallAdIds = new Set<string>();
-  adsMetadata.forEach(ad => {
+
+  for (const campaign of campaigns) {
+    // Fetch ads metadata for this campaign
+    const adsMetadata = await getCampaignAds(campaign.id, adAccountId);
+    allAdsMetadata = [...allAdsMetadata, ...adsMetadata];
+
+    // Fetch insights for this campaign
+    const fields = [
+      'ad_id', 'ad_name', 'spend', 'impressions', 'reach', 'frequency', 'clicks',
+      'ctr', 'cpm', 'cpc', 'actions',
+      'video_play_actions',
+      'date_start', 'date_stop',
+    ].join(',');
+
+    let nextUrl: string | null = null;
+    const firstPage = await metaFetch(`/${campaign.id}/insights`, {
+      fields,
+      date_preset: datePreset,
+      level: 'ad',
+      limit: '200',
+    });
+
+    allInsightRows = [...allInsightRows, ...(firstPage.data || [])];
+    nextUrl = firstPage.paging?.next || null;
+
+    while (nextUrl) {
+      const res = await fetch(nextUrl, { cache: 'no-store' });
+      const page = await res.json();
+      allInsightRows = [...allInsightRows, ...(page.data || [])];
+      nextUrl = page.paging?.next || null;
+    }
+  }
+
+  // Build lookup map
+  const adMap: Record<string, typeof allAdsMetadata[0]> = {};
+  allAdsMetadata.forEach(ad => {
     adMap[ad.id] = ad;
     if (ad.adset?.optimization_goal === 'APP_INSTALLS') {
       appInstallAdIds.add(ad.id);
     }
   });
-
-  // Fetch campaign-level insights with ad breakdown (much more efficient than per-ad calls)
-  const fields = [
-    'ad_id', 'ad_name', 'spend', 'impressions', 'reach', 'frequency', 'clicks',
-    'ctr', 'cpm', 'cpc', 'actions',
-    'video_play_actions',
-    'date_start', 'date_stop',
-  ].join(',');
-
-  // Paginate through all insight results
-  let allInsightRows: Record<string, unknown>[] = [];
-  let nextUrl: string | null = null;
-
-  const firstPage = await metaFetch(`/${campaign.id}/insights`, {
-    fields,
-    date_preset: datePreset,
-    level: 'ad',
-    limit: '200',
-  });
-
-  allInsightRows = firstPage.data || [];
-  nextUrl = firstPage.paging?.next || null;
-
-  // Follow pagination if needed
-  while (nextUrl) {
-    const res = await fetch(nextUrl, { cache: 'no-store' });
-    const page = await res.json();
-    allInsightRows = [...allInsightRows, ...(page.data || [])];
-    nextUrl = page.paging?.next || null;
-  }
 
   // Step 1: Aggregate insight rows by ad_id
   // (Meta API may return multiple rows per ad_id due to pagination/breakdowns)
@@ -266,7 +286,7 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
 
   return {
     ads: filteredAds,
-    campaign,
+    campaign: campaigns[0] || null,
     lastSync: new Date().toISOString(),
   };
 }
