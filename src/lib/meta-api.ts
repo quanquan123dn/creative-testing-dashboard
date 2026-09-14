@@ -118,6 +118,28 @@ function extractAction(
   return found ? parseFloat(found.value) : 0;
 }
 
+/**
+ * Generate monthly time_range chunks for Meta API to avoid "too much data" errors.
+ * Returns array of { since: 'YYYY-MM-DD', until: 'YYYY-MM-DD' } objects.
+ */
+function generateMonthlyChunks(monthsBack: number): { since: string; until: string }[] {
+  const chunks: { since: string; until: string }[] = [];
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  for (let i = monthsBack; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = i === 0
+      ? new Date(today) // current month: up to today
+      : new Date(now.getFullYear(), now.getMonth() - i + 1, 0); // last day of month
+
+    const since = start.toISOString().split('T')[0];
+    const until = end.toISOString().split('T')[0];
+    chunks.push({ since, until });
+  }
+  return chunks;
+}
+
 export async function getAllAdInsights(datePreset: string = 'last_7d', campaignNameOverride?: string, adAccountId?: string): Promise<{
   ads: AdInsight[];
   campaign: CampaignSummary | null;
@@ -146,22 +168,46 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
       'date_start', 'date_stop',
     ].join(',');
 
-    let nextUrl: string | null = null;
-    const firstPage = await metaFetch(`/${campaign.id}/insights`, {
-      fields,
-      date_preset: datePreset,
-      level: 'ad',
-      limit: '200',
-    });
-
-    allInsightRows = [...allInsightRows, ...(firstPage.data || [])];
-    nextUrl = firstPage.paging?.next || null;
-
-    while (nextUrl) {
-      const res = await fetch(nextUrl, { cache: 'no-store' });
-      const page = await res.json();
-      allInsightRows = [...allInsightRows, ...(page.data || [])];
-      nextUrl = page.paging?.next || null;
+    // For 'maximum', split into monthly chunks to avoid Meta's data limit
+    if (datePreset === 'maximum') {
+      const chunks = generateMonthlyChunks(6); // last 6 months
+      for (const chunk of chunks) {
+        try {
+          let nextUrl: string | null = null;
+          const firstPage = await metaFetch(`/${campaign.id}/insights`, {
+            fields,
+            time_range: JSON.stringify(chunk),
+            level: 'ad',
+            limit: '200',
+          });
+          allInsightRows = [...allInsightRows, ...(firstPage.data || [])];
+          nextUrl = firstPage.paging?.next || null;
+          while (nextUrl) {
+            const res = await fetch(nextUrl, { cache: 'no-store' });
+            const page = await res.json();
+            allInsightRows = [...allInsightRows, ...(page.data || [])];
+            nextUrl = page.paging?.next || null;
+          }
+        } catch (e) {
+          console.warn(`Chunk ${chunk.since}-${chunk.until} failed for campaign ${campaign.name}:`, e);
+        }
+      }
+    } else {
+      let nextUrl: string | null = null;
+      const firstPage = await metaFetch(`/${campaign.id}/insights`, {
+        fields,
+        date_preset: datePreset,
+        level: 'ad',
+        limit: '200',
+      });
+      allInsightRows = [...allInsightRows, ...(firstPage.data || [])];
+      nextUrl = firstPage.paging?.next || null;
+      while (nextUrl) {
+        const res = await fetch(nextUrl, { cache: 'no-store' });
+        const page = await res.json();
+        allInsightRows = [...allInsightRows, ...(page.data || [])];
+        nextUrl = page.paging?.next || null;
+      }
     }
   }
 
