@@ -7,7 +7,9 @@ const CH_HOST = process.env.CH_HOST || '117.6.160.176';
 const CH_PORT = process.env.CH_PORT || '8123';
 const CH_USER = process.env.CH_USER || 'zitga_clickhouse';
 const CH_PASS = process.env.CH_PASS || 'Zitga%40123';
-const CH_DB = process.env.CH_DB || 'analytics';
+const CH_DB = process.env.CH_DB || 'TSH009';
+
+import { AdInsight } from '@/lib/meta-api';
 
 export interface ClickHouseL2Ad {
   ad_name: string;
@@ -171,3 +173,70 @@ export async function getL2CreativeStats(campaignName: string, gameCode?: string
     queriedAt: new Date().toISOString(),
   };
 }
+
+export async function getL1InsightsFromClickHouse(campaignNames: string[]): Promise<AdInsight[]> {
+  const campaignsList = campaignNames.map(c => `'${c.replace(/'/g, "''")}'`).join(', ');
+  
+  if (!campaignsList) return [];
+
+  const sql = `
+    SELECT
+      ad,
+      min(first_day_ad) as first_day_ad,
+      sum(cost) as spend,
+      sum(impressions) as impressions,
+      sum(clicks) as clicks,
+      sum(installs) as installs
+    FROM ms5_dashboard_data_mkt
+    WHERE campaign IN (${campaignsList})
+      AND ad != ''
+      AND ad IS NOT NULL
+    GROUP BY ad
+    HAVING sum(cost) > 0
+  `;
+
+  const rows = await queryClickHouse(sql);
+
+  return rows.map(row => {
+    const spend = Number(row.spend) || 0;
+    const impressions = Number(row.impressions) || 0;
+    const clicks = Number(row.clicks) || 0;
+    const installs = Number(row.installs) || 0;
+
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const cpm = impressions > 0 ? (spend / impressions) * 1000 : 0;
+    const cpc = clicks > 0 ? (spend / clicks) : 0;
+    const cpi = installs > 0 ? (spend / installs) : 0;
+    const ipm = impressions > 0 ? (installs / impressions) * 1000 : 0;
+    const click_to_install = clicks > 0 ? (installs / clicks) * 100 : 0;
+
+    return {
+      ad_id: row.ad,
+      ad_name: row.ad,
+      status: 'ACTIVE',
+      adset_status: 'ACTIVE',
+      thumbnail_url: '',
+      video_id: null,
+      spend,
+      impressions,
+      clicks,
+      installs,
+      ctr,
+      cpm,
+      cpc,
+      cpi,
+      ipm,
+      click_to_install,
+      hook_rate: 0,
+      hold_rate: 0,
+      frequency: 0,
+      reach: 0,
+      video_3s_views: 0,
+      video_thruplay: 0,
+      date_start: '',
+      date_stop: '',
+      created_time: row.first_day_ad || ''
+    };
+  });
+}
+

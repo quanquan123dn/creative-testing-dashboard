@@ -336,3 +336,110 @@ export async function getAllAdInsights(datePreset: string = 'last_7d', campaignN
     lastSync: new Date().toISOString(),
   };
 }
+
+export async function getVideoEngagementData(campaignNameOverride?: string, adAccountId?: string): Promise<Map<string, { hook_rate: number; hold_rate: number; thumbnail_url: string; video_id: string | null; video_3s_views: number; video_thruplay: number }>> {
+  const campaigns = await findCampaigns(campaignNameOverride, adAccountId);
+  if (campaigns.length === 0) {
+    return new Map();
+  }
+
+  const resultMap = new Map<string, {
+    impressions: number;
+    video_3s_views: number;
+    video_thruplay: number;
+    thumbnail_url: string;
+    video_id: string | null;
+  }>();
+
+  for (const campaign of campaigns) {
+    const adsMetadata = await getCampaignAds(campaign.id, adAccountId);
+    
+    const adMetaMap = new Map<string, { thumbnail_url: string; video_id: string | null }>();
+    for (const ad of adsMetadata) {
+      adMetaMap.set(ad.id, {
+        thumbnail_url: ad.creative?.thumbnail_url || '',
+        video_id: ad.creative?.video_id || null
+      });
+    }
+
+    const fields = 'ad_id,ad_name,impressions,video_play_actions,actions';
+    const chunks = generateMonthlyChunks(6);
+    
+    for (const chunk of chunks) {
+      try {
+        let nextUrl: string | null = null;
+        const firstPage = await metaFetch(`/${campaign.id}/insights`, {
+          fields,
+          time_range: JSON.stringify(chunk),
+          level: 'ad',
+          limit: '200',
+        });
+        
+        let allInsightRows = firstPage.data || [];
+        nextUrl = firstPage.paging?.next || null;
+        while (nextUrl) {
+          const res = await fetch(nextUrl, { cache: 'no-store' });
+          const page = await res.json();
+          allInsightRows = [...allInsightRows, ...(page.data || [])];
+          nextUrl = page.paging?.next || null;
+        }
+
+        for (const raw of allInsightRows) {
+          const adId = raw.ad_id as string;
+          const adName = (raw.ad_name as string || adId).toLowerCase();
+          
+          const impressions = parseInt(raw.impressions as string || '0', 10);
+          
+          const actions = raw.actions as { action_type: string; value: string }[] | undefined;
+          const videoPlayArr = raw.video_play_actions as { action_type: string; value: string }[] | undefined;
+          
+          const v3s = extractAction(actions, 'video_view') || (videoPlayArr ? parseFloat(videoPlayArr[0]?.value || '0') : 0);
+          const vThruplay = extractAction(actions, 'video_watches_at_100_pct') || 0;
+
+          if (!resultMap.has(adName)) {
+            const meta = adMetaMap.get(adId);
+            resultMap.set(adName, {
+              impressions: 0,
+              video_3s_views: 0,
+              video_thruplay: 0,
+              thumbnail_url: meta?.thumbnail_url || '',
+              video_id: meta?.video_id || null,
+            });
+          }
+          
+          const agg = resultMap.get(adName)!;
+          agg.impressions += impressions;
+          agg.video_3s_views += v3s;
+          agg.video_thruplay += vThruplay;
+          
+          const meta = adMetaMap.get(adId);
+          if (meta && meta.thumbnail_url && !agg.thumbnail_url) {
+             agg.thumbnail_url = meta.thumbnail_url;
+          }
+          if (meta && meta.video_id && !agg.video_id) {
+             agg.video_id = meta.video_id;
+          }
+        }
+      } catch (e) {
+        console.warn(`Chunk ${chunk.since}-${chunk.until} failed for campaign ${campaign.name}:`, e);
+      }
+    }
+  }
+
+  const finalMap = new Map<string, { hook_rate: number; hold_rate: number; thumbnail_url: string; video_id: string | null; video_3s_views: number; video_thruplay: number }>();
+  
+  for (const [adName, data] of resultMap.entries()) {
+    const hook_rate = data.impressions > 0 ? (data.video_3s_views / data.impressions) * 100 : 0;
+    const hold_rate = data.video_3s_views > 0 ? (data.video_thruplay / data.video_3s_views) * 100 : 0;
+    finalMap.set(adName, {
+      hook_rate,
+      hold_rate,
+      thumbnail_url: data.thumbnail_url,
+      video_id: data.video_id,
+      video_3s_views: data.video_3s_views,
+      video_thruplay: data.video_thruplay
+    });
+  }
+
+  return finalMap;
+}

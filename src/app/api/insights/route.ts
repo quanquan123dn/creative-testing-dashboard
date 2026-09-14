@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllAdInsights } from '@/lib/meta-api';
+import { getVideoEngagementData } from '@/lib/meta-api';
+import { getL1InsightsFromClickHouse } from '@/lib/clickhouse-api';
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { getGameConfig } from '@/lib/game-config';
 
@@ -12,13 +13,30 @@ function getCachedInsights(datePreset: string, gameId: string) {
   const gameConfig = getGameConfig(gameId);
   return unstable_cache(
     async () => {
-      const data = await getAllAdInsights(
-        datePreset,
-        gameConfig.meta.layer1CampaignName,
-        gameConfig.meta.adAccountId
-      );
+      const campaignNames = gameConfig.meta.layer1CampaignName.split('|').map(n => n.trim());
+      
+      const [chData, metaMap] = await Promise.all([
+        getL1InsightsFromClickHouse(campaignNames),
+        getVideoEngagementData(gameConfig.meta.layer1CampaignName, gameConfig.meta.adAccountId)
+      ]);
+
+      const mergedAds = chData.map(ad => {
+        const meta = metaMap.get(ad.ad_name.toLowerCase());
+        if (meta) {
+          ad.hook_rate = meta.hook_rate;
+          ad.hold_rate = meta.hold_rate;
+          ad.thumbnail_url = meta.thumbnail_url;
+          ad.video_id = meta.video_id;
+          ad.video_3s_views = meta.video_3s_views;
+          ad.video_thruplay = meta.video_thruplay;
+        }
+        return ad;
+      });
+
       return {
-        ...data,
+        ads: mergedAds,
+        campaign: { id: '', name: gameConfig.meta.layer1CampaignName, status: 'ACTIVE' },
+        lastSync: new Date().toISOString(),
         cachedAt: new Date().toISOString(),
       };
     },
